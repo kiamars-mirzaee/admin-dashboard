@@ -1,0 +1,6 @@
+{
+  "name": "Kestrel Admin",
+  "description": "Mobile-first 2026 admin dashboard and reusable React UI component kit with adaptive card-table rows, advanced data filtering, interactive charts, drawers, modals, and live notifications.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
