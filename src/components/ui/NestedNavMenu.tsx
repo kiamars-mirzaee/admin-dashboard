@@ -7,6 +7,7 @@ import {
   Building2,
   ChevronRight,
   Clock,
+  FolderOpen,
   Layers,
   LayoutDashboard,
   ReceiptText,
@@ -53,6 +54,8 @@ function renderNavIcon(icon?: NavIconKey) {
       return <BarChart3 className={cls} aria-hidden="true" />;
     case 'table':
       return <Table2 className={cls} aria-hidden="true" />;
+    case 'storage':
+      return <FolderOpen className={cls} aria-hidden="true" />;
   }
 }
 

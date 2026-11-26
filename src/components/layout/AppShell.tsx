@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Bell,
   Blocks,
+  FolderOpen,
   Globe,
   Keyboard,
   LayoutDashboard,
@@ -35,7 +36,7 @@ import { useNotifications } from '../ui/NotificationSystem';
 interface MobileTabItem {
   id: NavSection;
   routeId: NavRouteId;
-  labelKey: 'navOverview' | 'navOrders' | 'navCustomers' | 'navComponents';
+  labelKey: 'navOverview' | 'navOrders' | 'navCustomers' | 'navStorage' | 'navComponents';
   Icon: typeof LayoutDashboard;
 }
 
@@ -43,6 +44,7 @@ const MOBILE_TABS: MobileTabItem[] = [
   { id: 'overview', routeId: 'overview', labelKey: 'navOverview', Icon: LayoutDashboard },
   { id: 'orders', routeId: 'orders-all', labelKey: 'navOrders', Icon: ReceiptText },
   { id: 'customers', routeId: 'customers-all', labelKey: 'navCustomers', Icon: Users },
+  { id: 'storage', routeId: 'storage', labelKey: 'navStorage', Icon: FolderOpen },
   { id: 'components', routeId: 'components-all', labelKey: 'navComponents', Icon: Blocks },
 ];
 
@@ -393,7 +395,7 @@ export function AppShell({
       {/* Mobile Fixed Bottom Navigation Bar (56px height) */}
       <nav
         aria-label="Mobile navigation"
-        className="no-print lg:hidden fixed bottom-0 left-0 right-0 z-30 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-4 items-center px-1"
+        className="no-print lg:hidden fixed bottom-0 left-0 right-0 z-30 h-14 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 grid grid-cols-5 items-center px-1"
       >
         {MOBILE_TABS.map(({ id, routeId, labelKey, Icon }) => {
           const active = activeSection === id;
@@ -403,14 +405,14 @@ export function AppShell({
               type="button"
               onClick={() => onNavigate(routeId)}
               aria-current={active ? 'page' : undefined}
-              className={`h-full flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
+              className={`h-full min-w-0 px-0.5 flex flex-col items-center justify-center gap-0.5 transition-colors cursor-pointer ${
                 active
                   ? 'text-blue-600 dark:text-blue-400 font-semibold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
-              <Icon className="w-5 h-5" aria-hidden="true" />
-              <span className="text-[11px] font-medium tracking-tight whitespace-nowrap">
+              <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+              <span className="text-[10px] sm:text-[11px] font-medium tracking-tight truncate max-w-full">
                 {t(labelKey)}
               </span>
             </button>

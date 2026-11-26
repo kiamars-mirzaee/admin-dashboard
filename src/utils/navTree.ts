@@ -12,7 +12,8 @@ export type NavIconKey =
   | 'risk'
   | 'layers'
   | 'chart'
-  | 'table';
+  | 'table'
+  | 'storage';
 
 export interface NavNode {
   id: NavRouteId;
@@ -94,6 +95,11 @@ export function buildAdminNavTree(
       ],
     },
     {
+      id: 'storage',
+      label: t('navStorage'),
+      icon: 'storage',
+    },
+    {
       id: 'ui-system',
       label: t('navUiSystem'),
       icon: 'components',
@@ -170,6 +176,7 @@ export function isNodeActiveOrAncestor(
 
 export function getSectionForRoute(routeId: NavRouteId): NavSection {
   if (routeId === 'overview') return 'overview';
+  if (routeId === 'storage') return 'storage';
   if (routeId.startsWith('orders')) return 'orders';
   if (routeId.startsWith('customers')) return 'customers';
   if (routeId === 'commerce') return 'orders';

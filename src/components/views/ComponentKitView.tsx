@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { Bell, Inbox, Layers, PanelRightOpen, Sparkles } from 'lucide-react';
 import { REVENUE_SERIES_BY_RANGE, INITIAL_CUSTOMERS, INITIAL_ORDERS } from '../../data/seedData';
 import type { CustomerProfile, OrderRecord } from '../../types/admin';
+import type { StorageNode } from '../../types/storage';
 import { useI18n } from '../../i18n/I18nContext';
 import type { NumberFormatStyle, NumeralScript } from '../../utils/numberFormat';
+import { StorageFormField } from '../storage/FileStoragePickerModal';
 import { AdaptiveDrawer } from '../ui/AdaptiveDrawer';
 import { Breadcrumb } from '../ui/Breadcrumb';
 import { Button } from '../ui/Button';
@@ -104,6 +106,8 @@ export function ComponentKitView({
   );
   const [bcDepth, setBcDepth] = useState<'2' | '4' | '5'>('5');
   const [bcSeparator, setBcSeparator] = useState<'chevron' | 'slash'>('chevron');
+  const [pickerRootId, setPickerRootId] = useState<string>('fld-compliance');
+  const [pickerFile, setPickerFile] = useState<StorageNode | null>(null);
 
   const selectedCategory = onChangeCategory ? activeCategory : internalCat;
   const setSelectedCategory = onChangeCategory ?? setInternalCat;
@@ -254,6 +258,74 @@ export function ComponentKitView({
                     variant: 'success',
                   })
                 }
+              />
+            </div>
+          </section>
+
+          {/* 05. Scoped File Storage Picker Modal */}
+          <section
+            id="kit-section-storage-picker"
+            data-testid="kit-section-storage-picker"
+            className="scroll-mt-20 p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4"
+          >
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                {t('storagePickerDemoTitle')}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('storagePickerDemoDesc')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div>
+                <label
+                  htmlFor="kit-picker-root-select"
+                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                >
+                  {t('storageTargetFolderLabel')}
+                </label>
+                <select
+                  id="kit-picker-root-select"
+                  data-testid="kit-picker-root-select"
+                  value={pickerRootId}
+                  onChange={(e) => {
+                    setPickerRootId(e.target.value);
+                    setPickerFile(null);
+                  }}
+                  className="w-full min-h-[44px] px-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-600 cursor-pointer"
+                >
+                  <option value="">/ {t('storageRootLabel')}</option>
+                  <option value="fld-compliance">/ Compliance &amp; SOC2</option>
+                  <option value="fld-settlements">/ Invoices &amp; Settlements</option>
+                  <option value="fld-contracts">/ Partner Contracts</option>
+                </select>
+              </div>
+
+              <StorageFormField
+                label={t('storagePickerTitle')}
+                rootFolderId={pickerRootId || null}
+                value={pickerFile}
+                onChange={(file) => {
+                  setPickerFile(file);
+                  if (file) {
+                    addToast({
+                      title: file.name,
+                      description: t('storagePickerRootLabel', {
+                        name:
+                          pickerRootId === 'fld-compliance'
+                            ? 'Compliance & SOC2'
+                            : pickerRootId === 'fld-settlements'
+                              ? 'Invoices & Settlements'
+                              : pickerRootId === 'fld-contracts'
+                                ? 'Partner Contracts'
+                                : t('storageRootLabel'),
+                      }),
+                      variant: 'success',
+                    });
+                  }
+                }}
+                testIdPrefix="kit-storage-field"
               />
             </div>
           </section>

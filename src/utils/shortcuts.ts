@@ -5,6 +5,7 @@ export type ShortcutId =
   | 'nav-orders'
   | 'nav-flagged'
   | 'nav-customers'
+  | 'nav-storage'
   | 'nav-components'
   | 'toggle-notifications'
   | 'new-order'
@@ -53,6 +54,13 @@ export const GLOBAL_SHORTCUTS: ShortcutDefinition[] = [
     displayKeys: ['G', 'C'],
     category: 'navigation',
     labelKey: 'scNavCustomers',
+  },
+  {
+    id: 'nav-storage',
+    keys: ['g', 's'],
+    displayKeys: ['G', 'S'],
+    category: 'navigation',
+    labelKey: 'scNavStorage',
   },
   {
     id: 'nav-components',

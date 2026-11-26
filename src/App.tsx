@@ -52,6 +52,7 @@ import {
   type ComponentKitCategory,
   ComponentKitView,
 } from './components/views/ComponentKitView';
+import { FileStorageView } from './components/views/FileStorageView';
 import { OrderDetailDrawer } from './components/dashboard/OrderDetailDrawer';
 import { CreateOrderModal } from './components/dashboard/CreateOrderModal';
 
@@ -198,6 +199,10 @@ function DashboardWorkspace() {
         case 'nav-customers':
           setDrawerOpen(false);
           handleNavigate('customers-all');
+          break;
+        case 'nav-storage':
+          setDrawerOpen(false);
+          handleNavigate('storage');
           break;
         case 'nav-components':
           setDrawerOpen(false);
@@ -599,6 +604,8 @@ function DashboardWorkspace() {
             onTogglePinCustomer={handleToggleCustomerPin}
           />
         )}
+
+        {activeSection === 'storage' && <FileStorageView />}
 
         {activeSection === 'components' && (
           <ComponentKitView

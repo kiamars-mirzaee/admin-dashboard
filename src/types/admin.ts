@@ -1,4 +1,4 @@
-export type NavSection = 'overview' | 'orders' | 'customers' | 'components';
+export type NavSection = 'overview' | 'orders' | 'customers' | 'storage' | 'components';
 
 export type NavRouteId =
   | 'overview'
@@ -11,6 +11,7 @@ export type NavRouteId =
   | 'customers-all'
   | 'customers-enterprise'
   | 'customers-risk'
+  | 'storage'
   | 'ui-system'
   | 'components-all'
   | 'components-inputs'

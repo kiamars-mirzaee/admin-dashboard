@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, X } from 'lucide-react';
 import { useI18n } from '../../i18n/I18nContext';
 import { Button } from './Button';
@@ -11,6 +12,7 @@ export interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  disableEscapeClose?: boolean;
 }
 
 export function Modal({
@@ -21,11 +23,12 @@ export function Modal({
   children,
   footer,
   size = 'md',
+  disableEscapeClose = false,
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape' && !disableEscapeClose) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     const prevOverflow = document.body.style.overflow;
@@ -34,7 +37,7 @@ export function Modal({
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = prevOverflow;
     };
-  }, [open, onClose]);
+  }, [open, onClose, disableEscapeClose]);
 
   if (!open) return null;
 
@@ -49,7 +52,7 @@ export function Modal({
             ? 'sm:max-w-6xl'
             : 'sm:max-w-lg';
 
-  return (
+  const dialog = (
     <div
       className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
       role="dialog"
@@ -101,6 +104,9 @@ export function Modal({
       </div>
     </div>
   );
+
+  if (typeof document === 'undefined') return dialog;
+  return createPortal(dialog, document.body);
 }
 
 export interface ConfirmModalProps {

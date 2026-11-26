@@ -5,6 +5,7 @@ import {
   BookmarkPlus,
   Building2,
   Check,
+  FolderOpen,
   LayoutDashboard,
   Pin,
   PinOff,
@@ -57,6 +58,8 @@ function getRouteIcon(routeId: NavRouteId) {
       return ReceiptText;
     case 'customers':
       return Users;
+    case 'storage':
+      return FolderOpen;
     case 'components':
     default:
       return Blocks;

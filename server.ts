@@ -19,12 +19,26 @@ import {
   validateOrderCrudPayload,
 } from './src/utils/dataGridEngine.ts';
 
+import type { StorageNode } from './src/types/storage.ts';
+import {
+  computeStorageSummary,
+  createFileNode,
+  createFolderNode,
+  deleteStorageNode,
+  INITIAL_STORAGE_NODES,
+  renameStorageNode,
+  type UploadFileInput,
+  updateFileContentNode,
+  uploadFilesIntoFolder,
+} from './src/utils/fileStorage.ts';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT) || 3000;
 
 let ordersStore: GridOrderRow[] = buildInitialGridOrders();
+let storageStore: StorageNode[] = [...INITIAL_STORAGE_NODES];
 
 function parseFiltersParam(raw: unknown): GridFilterValues {
   if (typeof raw !== 'string' || !raw.trim()) return {};
@@ -44,7 +58,7 @@ function getNextOrderId(): { id: string; numericCode: number } {
 
 async function startServer() {
   const app = express();
-  app.use(express.json({ limit: '1mb' }));
+  app.use(express.json({ limit: '15mb' }));
 
   // Lightweight full-dataset endpoint so Overview / Drawer stay synced with backend CRUD
   app.get('/api/orders/all', (_req, res) => {
@@ -345,6 +359,142 @@ async function startServer() {
     }
 
     res.status(400).json({ error: `Unknown bulk action: ${actionId}` });
+  });
+
+  // File Storage REST endpoints
+  app.get('/api/storage', (_req, res) => {
+    res.json({
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
+  });
+
+  app.post('/api/storage/folder', (req, res) => {
+    const body = (req.body ?? {}) as {
+      parentId?: string | null;
+      name?: string;
+      owner?: string;
+    };
+    const result = createFolderNode(storageStore, {
+      parentId: body.parentId ?? null,
+      name: typeof body.name === 'string' ? body.name : '',
+      owner: typeof body.owner === 'string' ? body.owner : undefined,
+    });
+    if (!result.ok) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    storageStore = result.nodes;
+    res.status(201).json({
+      ok: true,
+      node: result.createdNodes?.[0],
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
+  });
+
+  app.post('/api/storage/file', (req, res) => {
+    const body = (req.body ?? {}) as {
+      parentId?: string | null;
+      name?: string;
+      content?: string;
+      mimeType?: string;
+      owner?: string;
+    };
+    const result = createFileNode(storageStore, {
+      parentId: body.parentId ?? null,
+      name: typeof body.name === 'string' ? body.name : '',
+      content: typeof body.content === 'string' ? body.content : '',
+      mimeType: typeof body.mimeType === 'string' ? body.mimeType : undefined,
+      owner: typeof body.owner === 'string' ? body.owner : undefined,
+    });
+    if (!result.ok) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    storageStore = result.nodes;
+    res.status(201).json({
+      ok: true,
+      node: result.createdNodes?.[0],
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
+  });
+
+  app.post('/api/storage/upload', (req, res) => {
+    const body = (req.body ?? {}) as {
+      parentId?: string | null;
+      files?: UploadFileInput[];
+      owner?: string;
+    };
+    const files = Array.isArray(body.files) ? body.files : [];
+    const result = uploadFilesIntoFolder(storageStore, {
+      parentId: body.parentId ?? null,
+      files,
+      owner: typeof body.owner === 'string' ? body.owner : undefined,
+    });
+    if (!result.ok) {
+      res.status(400).json({ error: result.error });
+      return;
+    }
+    storageStore = result.nodes;
+    res.status(201).json({
+      ok: true,
+      createdNodes: result.createdNodes ?? [],
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
+  });
+
+  app.patch('/api/storage/:id', (req, res) => {
+    const id = req.params.id;
+    const body = (req.body ?? {}) as { name?: string; content?: string };
+    let workingNodes = storageStore;
+    let updatedNode: StorageNode | undefined;
+
+    if (typeof body.name === 'string') {
+      const renameRes = renameStorageNode(workingNodes, id, body.name);
+      if (!renameRes.ok) {
+        res.status(400).json({ error: renameRes.error });
+        return;
+      }
+      workingNodes = renameRes.nodes;
+      updatedNode = renameRes.updatedNode;
+    }
+
+    if (typeof body.content === 'string') {
+      const contentRes = updateFileContentNode(workingNodes, id, body.content);
+      if (!contentRes.ok) {
+        res.status(400).json({ error: contentRes.error });
+        return;
+      }
+      workingNodes = contentRes.nodes;
+      updatedNode = contentRes.updatedNode;
+    }
+
+    storageStore = workingNodes;
+    res.json({
+      ok: true,
+      node: updatedNode,
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
+  });
+
+  app.delete('/api/storage/:id', (req, res) => {
+    const id = req.params.id;
+    const result = deleteStorageNode(storageStore, id);
+    if (!result.ok) {
+      res.status(404).json({ error: result.error });
+      return;
+    }
+    storageStore = result.nodes;
+    res.json({
+      ok: true,
+      removedCount: result.removedCount ?? 1,
+      nodes: storageStore,
+      summary: computeStorageSummary(storageStore),
+    });
   });
 
   if (process.env.NODE_ENV !== 'production') {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileDown, Loader2, Pin, PinOff, Printer, Trash2 } from 'lucide-react';
+import { FileDown, Loader2, Paperclip, Pin, PinOff, Printer, Trash2 } from 'lucide-react';
 import type { OrderRecord, OrderStatus } from '../../types/admin';
 import { formatCurrency } from '../../utils/tableLogic';
 import { useI18n } from '../../i18n/I18nContext';
@@ -11,6 +11,7 @@ import { StatusIndicator } from '../ui/StatusIndicator';
 import { ConfirmModal } from '../ui/Modal';
 import { useNotifications } from '../ui/NotificationSystem';
 import { OrderPrintModal } from '../print/OrderPrintModal';
+import { FileStoragePickerModal } from '../storage/FileStoragePickerModal';
 
 const STATUS_OPTIONS: OrderStatus[] = [
   'Completed',
@@ -46,6 +47,7 @@ export function OrderDetailDrawer({
   const [notes, setNotes] = useState('');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
+  const [attachModalOpen, setAttachModalOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
 
   useEffect(() => {
@@ -53,6 +55,7 @@ export function OrderDetailDrawer({
       setStatus(order.status);
       setNotes(order.notes ?? '');
       setPrintOpen(false);
+      setAttachModalOpen(false);
     }
   }, [order]);
 
@@ -118,7 +121,7 @@ export function OrderDetailDrawer({
       <AdaptiveDrawer
         open={Boolean(order)}
         onClose={onClose}
-        disableEscapeClose={printOpen || confirmDeleteOpen}
+        disableEscapeClose={printOpen || confirmDeleteOpen || attachModalOpen}
         title={order.id}
         subtitle={`${order.company} · ${order.date}`}
         footer={
@@ -278,12 +281,23 @@ export function OrderDetailDrawer({
 
         {/* Editable Notes */}
         <div className="space-y-2">
-          <label
-            htmlFor="detail-order-notes"
-            className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
-          >
-            {t('opsNotesLabel')}
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label
+              htmlFor="detail-order-notes"
+              className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
+            >
+              {t('opsNotesLabel')}
+            </label>
+            <button
+              type="button"
+              onClick={() => setAttachModalOpen(true)}
+              data-testid="order-drawer-attach-btn"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40 transition-colors cursor-pointer whitespace-nowrap"
+            >
+              <Paperclip className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>{t('storageDrawerAttachBtn')}</span>
+            </button>
+          </div>
           <textarea
             id="detail-order-notes"
             rows={3}
@@ -319,6 +333,23 @@ export function OrderDetailDrawer({
           ...order,
           status,
           notes: notes.trim() || undefined,
+        }}
+      />
+
+      <FileStoragePickerModal
+        open={attachModalOpen}
+        onClose={() => setAttachModalOpen(false)}
+        rootFolderId="fld-settlements"
+        onConfirm={(files) => {
+          const picked = files[0];
+          if (!picked) return;
+          const marker = `[Attachment: ${picked.name}]`;
+          setNotes((prev) => {
+            const trimmed = prev.trim();
+            if (!trimmed) return marker;
+            if (trimmed.includes(marker)) return prev;
+            return `${trimmed}\n${marker}`;
+          });
         }}
       />
     </>

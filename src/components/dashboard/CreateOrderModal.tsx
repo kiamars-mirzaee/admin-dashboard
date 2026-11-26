@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import type { OrderChannel, OrderRecord, OrderStatus } from '../../types/admin';
+import type { StorageNode } from '../../types/storage';
 import { REFERENCE_TODAY } from '../../data/seedData';
 import { useI18n } from '../../i18n/I18nContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { StorageFormField } from '../storage/FileStoragePickerModal';
 
 export interface CreateOrderModalProps {
   open: boolean;
@@ -33,6 +35,8 @@ export function CreateOrderModal({
   const [status, setStatus] = useState<OrderStatus>('Processing');
   const [amount, setAmount] = useState('');
   const [region, setRegion] = useState('New York, US');
+  const [attachedFile, setAttachedFile] = useState<StorageNode | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
 
   const resetForm = () => {
@@ -44,6 +48,8 @@ export function CreateOrderModal({
     setStatus('Processing');
     setAmount('');
     setRegion('New York, US');
+    setAttachedFile(null);
+    setPickerOpen(false);
     setErrors({});
   };
 
@@ -89,6 +95,7 @@ export function CreateOrderModal({
       date: REFERENCE_TODAY,
       region: region.trim() || 'Remote',
       paymentMethod: 'Invoice Net-30',
+      notes: attachedFile ? `Attachment: ${attachedFile.name}` : undefined,
     });
 
     handleClose();
@@ -101,6 +108,7 @@ export function CreateOrderModal({
     <Modal
       open={open}
       onClose={handleClose}
+      disableEscapeClose={pickerOpen}
       title={t('createOrderTitle')}
       description={t('createOrderDesc')}
       footer={
@@ -312,6 +320,15 @@ export function CreateOrderModal({
             />
           </div>
         </div>
+
+        <StorageFormField
+          label={t('storageFormAttachLabel')}
+          rootFolderId="fld-contracts"
+          value={attachedFile}
+          onChange={setAttachedFile}
+          onPickerOpenChange={setPickerOpen}
+          testIdPrefix="create-order-file"
+        />
       </form>
     </Modal>
   );
