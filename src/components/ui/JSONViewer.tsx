@@ -31,8 +31,12 @@ export interface JSONViewerProps {
   title?: string;
   /** Initial depth to expand automatically (default: 2) */
   defaultExpandDepth?: number;
-  /** Show search & filter bar (default: true) */
+  /** Show persistent search & filter bar (default: true) */
   searchable?: boolean;
+  /** Persist search query across reloads & data updates via localStorage (default: true) */
+  persistSearch?: boolean;
+  /** Optional custom storage key for persisted search query */
+  persistSearchKey?: string;
   /** Allow toggling between interactive Tree view and formatted Raw JSON (default: true) */
   allowRawToggle?: boolean;
   /** Max vertical scroll height for the body container */
@@ -346,6 +350,8 @@ export function JSONViewer({
   title = 'payload.json',
   defaultExpandDepth = 2,
   searchable = true,
+  persistSearch = true,
+  persistSearchKey,
   allowRawToggle = true,
   maxHeight = '360px',
   surface = 'dark',
@@ -355,11 +361,32 @@ export function JSONViewer({
   const { copied, copy } = useClipboard(1600);
   const [copiedPath, setCopiedPath] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'tree' | 'raw'>('tree');
-  const [searchInput, setSearchInput] = useState('');
+  const resolvedStorageKey = persistSearchKey ?? `kestrel:json-search:${title}`;
+  const [searchInput, setSearchInput] = useState<string>(() => {
+    if (!persistSearch || typeof window === 'undefined') return '';
+    try {
+      return window.localStorage.getItem(resolvedStorageKey) ?? '';
+    } catch {
+      return '';
+    }
+  });
   const debouncedQuery = useDebounce(searchInput, 120);
   const [filterOnlyMatches, setFilterOnlyMatches] = useState(false);
   const [activeMatchIdx, setActiveMatchIdx] = useState(0);
   const activeNodeRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!persistSearch || typeof window === 'undefined') return;
+    try {
+      if (searchInput) {
+        window.localStorage.setItem(resolvedStorageKey, searchInput);
+      } else {
+        window.localStorage.removeItem(resolvedStorageKey);
+      }
+    } catch {
+      // ignore storage quota/privacy errors
+    }
+  }, [persistSearch, resolvedStorageKey, searchInput]);
 
   const parsed = useMemo(() => parseJsonInput(data), [data]);
   const rootNode = useMemo(() => buildJsonTree(parsed.value), [parsed.value]);
@@ -524,8 +551,8 @@ export function JSONViewer({
         </div>
       </div>
 
-      {/* Search Bar */}
-      {searchable && viewMode === 'tree' && (
+      {/* Persistent Search Bar */}
+      {searchable && (
         <div
           dir="ltr"
           className={`px-3.5 py-2 border-b ${
@@ -653,7 +680,15 @@ export function JSONViewer({
       >
         {viewMode === 'raw' || !parsed.ok ? (
           <pre className="leading-relaxed whitespace-pre-wrap break-words">
-            {prettyRaw}
+            {debouncedQuery.trim() ? (
+              <HighlightText
+                text={prettyRaw}
+                query={debouncedQuery}
+                isDarkSurface={isDarkSurface}
+              />
+            ) : (
+              prettyRaw
+            )}
           </pre>
         ) : debouncedQuery.trim() &&
           filterOnlyMatches &&

@@ -5,6 +5,7 @@ import {
   BookmarkPlus,
   Building2,
   Check,
+  Clock,
   FolderOpen,
   LayoutDashboard,
   Pin,
@@ -47,6 +48,8 @@ export interface FavoritesBarProps {
   onToggleOrderPin: (order: OrderRecord) => void;
   onToggleCustomerPin: (customer: CustomerProfile) => void;
   onResetDefaults: () => void;
+  recentRoutes?: Array<{ routeId: NavRouteId; label: string }>;
+  onSelectRecentRoute?: (routeId: NavRouteId) => void;
 }
 
 function getRouteIcon(routeId: NavRouteId) {
@@ -80,6 +83,8 @@ export function FavoritesBar({
   onToggleOrderPin,
   onToggleCustomerPin,
   onResetDefaults,
+  recentRoutes = [],
+  onSelectRecentRoute,
 }: FavoritesBarProps) {
   const { t } = useI18n();
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -259,6 +264,28 @@ export function FavoritesBar({
                 </div>
               );
             })
+          )}
+
+          {recentRoutes.length > 0 && onSelectRecentRoute && (
+            <div
+              data-testid="recent-routes-strip"
+              className="hidden xl:flex items-center gap-1.5 ps-2 ms-1 border-s border-slate-200 dark:border-slate-700 shrink-0"
+            >
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400">
+                <Clock className="w-3 h-3" aria-hidden="true" />
+                <span>{t('recentItemsLabel')}:</span>
+              </span>
+              {recentRoutes.map((item) => (
+                <button
+                  key={item.routeId}
+                  type="button"
+                  onClick={() => onSelectRecentRoute(item.routeId)}
+                  className="px-2 py-1 rounded-lg bg-slate-100/70 hover:bg-slate-200/70 dark:bg-slate-800/70 dark:hover:bg-slate-700 text-[11px] font-medium text-slate-600 dark:text-slate-300 transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

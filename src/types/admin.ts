@@ -12,7 +12,8 @@ export type NavSection =
   | 'help'
   | 'components'
   | 'auth'
-  | 'errors';
+  | 'errors'
+  | 'operations';
 
 export type NavRouteId =
   | 'overview'
@@ -36,6 +37,7 @@ export type NavRouteId =
   | 'admin-group'
   | 'access-control'
   | 'settings'
+  | 'operations-hub'
   | 'auth-flows'
   | 'error-403'
   | 'error-404'

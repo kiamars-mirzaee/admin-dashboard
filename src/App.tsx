@@ -63,7 +63,9 @@ import { AccessControlView } from './components/views/AccessControlView';
 import { AuditLogView } from './components/views/AuditLogView';
 import { SettingsView } from './components/views/SettingsView';
 import { AuthErrorShowcaseView } from './components/views/AuthErrorShowcaseView';
+import { OperationsHubView } from './components/views/OperationsHubView';
 import { OperationsTasksView } from './components/views/OperationsTasksView';
+import { DEFAULT_WORKSPACES } from './components/layout/ShellOverlays';
 import { ConfirmProvider, ErrorBoundary } from './components/ui/OverlayExtras';
 import { PermissionProvider } from './components/ui/SharedComposites';
 import { QuickActionsFAB } from './components/ui/LayoutPrimitives';
@@ -107,6 +109,9 @@ function DashboardWorkspace() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [gridRefreshKey, setGridRefreshKey] = useState(0);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(DEFAULT_WORKSPACES[0].id);
+  const [impersonatedUser, setImpersonatedUser] = useState<{ name: string; role: string } | null>(null);
+  const [recentRouteIds, setRecentRouteIds] = useState<NavRouteId[]>(['orders-all', 'reports']);
   const [favoritePins, setFavoritePins] = useState<FavoritePin[]>(
     loadInitialFavorites
   );
@@ -163,6 +168,7 @@ function DashboardWorkspace() {
   const applyNavigationNow = useCallback((route: NavRouteId) => {
     const resolved = resolveGroupTargetRoute(route);
     setActiveRoute(resolved);
+    setRecentRouteIds((prev) => [resolved, ...prev.filter((r) => r !== resolved)].slice(0, 4));
     setInspectedOrderId(null);
     setInspectedCustomerId(null);
     switch (resolved) {
@@ -627,6 +633,28 @@ function DashboardWorkspace() {
           setInspectedOrderId(null);
           setInspectedCustomerId(null);
         }}
+        activeWorkspaceId={activeWorkspaceId}
+        onChangeWorkspace={(ws) => {
+          setActiveWorkspaceId(ws.id);
+          addToast({
+            title: `Switched workspace to ${ws.name}`,
+            description: `${ws.plan} · ${ws.region}`,
+            variant: 'info',
+          });
+        }}
+        impersonatedUser={impersonatedUser}
+        onStartImpersonation={() => {
+          setImpersonatedUser({ name: 'Sara Mohammadi', role: 'Operations Lead' });
+          addToast({
+            title: 'Impersonation session active',
+            description: 'Viewing workspace as Sara Mohammadi.',
+            variant: 'warning',
+          });
+        }}
+        onExitImpersonation={() => {
+          setImpersonatedUser(null);
+          addToast({ title: 'Returned to Elena Rostova session', variant: 'success' });
+        }}
         quickAccessBar={
           <FavoritesBar
             pins={favoritePins}
@@ -642,6 +670,14 @@ function DashboardWorkspace() {
             onToggleOrderPin={handleToggleOrderPin}
             onToggleCustomerPin={handleToggleCustomerPin}
             onResetDefaults={() => setFavoritePins(DEFAULT_QUICK_FAVORITES)}
+            recentRoutes={recentRouteIds
+              .filter((r) => r !== activeRoute)
+              .slice(0, 3)
+              .map((r) => ({
+                routeId: r,
+                label: resolveViewPinLabel(r, navTreeForPalette, r),
+              }))}
+            onSelectRecentRoute={handleNavigate}
           />
         }
       >
@@ -758,6 +794,17 @@ function DashboardWorkspace() {
         {activeSection === 'help' && <OperationsTasksView initialTab="help" />}
 
         {activeSection === 'storage' && <FileStorageView />}
+
+        {activeSection === 'operations' && (
+          <OperationsHubView
+            orders={orders}
+            customers={INITIAL_CUSTOMERS}
+            onSelectOrder={(o) => {
+              handleNavigate('orders-all');
+              setInspectedOrderId(o.id);
+            }}
+          />
+        )}
 
         {activeSection === 'components' && (
           <ComponentKitView

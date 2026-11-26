@@ -291,3 +291,194 @@ export function useClipboard(timeoutMs = 1800) {
 }
 
 export const useCopy = useClipboard;
+
+/* ─── Missing Enterprise Hooks ─────────────────────────────────────────────── */
+
+export function useEventListener<K extends keyof WindowEventMap>(
+  eventName: K,
+  handler: (event: WindowEventMap[K]) => void,
+  enabled = true
+) {
+  const savedHandler = useRef(handler);
+  savedHandler.current = handler;
+
+  useEffect(() => {
+    if (!enabled || typeof window === 'undefined') return;
+    const listener = (event: WindowEventMap[K]) => savedHandler.current(event);
+    window.addEventListener(eventName, listener);
+    return () => window.removeEventListener(eventName, listener);
+  }, [eventName, enabled]);
+}
+
+export function useInterval(callback: () => void, delayMs: number | null) {
+  const savedCallback = useRef(callback);
+  savedCallback.current = callback;
+
+  useEffect(() => {
+    if (delayMs === null || delayMs < 0) return;
+    const id = window.setInterval(() => savedCallback.current(), delayMs);
+    return () => window.clearInterval(id);
+  }, [delayMs]);
+}
+
+export function useIdle(timeoutMs = 60_000) {
+  const [isIdle, setIsIdle] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let timer = window.setTimeout(() => setIsIdle(true), timeoutMs);
+
+    const reset = () => {
+      setIsIdle(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIsIdle(true), timeoutMs);
+    };
+
+    const events: Array<keyof WindowEventMap> = [
+      'mousemove',
+      'mousedown',
+      'keydown',
+      'touchstart',
+      'scroll',
+    ];
+    events.forEach((ev) => window.addEventListener(ev, reset, { passive: true }));
+    return () => {
+      window.clearTimeout(timer);
+      events.forEach((ev) => window.removeEventListener(ev, reset));
+    };
+  }, [timeoutMs]);
+
+  return { isIdle, resetIdle: () => setIsIdle(false) };
+}
+
+export function useBeforeUnload(when: boolean, message = 'You have unsaved changes.') {
+  useEffect(() => {
+    if (!when || typeof window === 'undefined') return;
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = message;
+      return message;
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [when, message]);
+}
+
+export function useDownload() {
+  const downloadText = useCallback(
+    (filename: string, content: string, mimeType = 'text/plain;charset=utf-8') => {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
+    []
+  );
+
+  const downloadBlob = useCallback((filename: string, blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, []);
+
+  return { downloadText, downloadBlob };
+}
+
+export function useFormPersist<T extends Record<string, unknown>>(
+  storageKey: string,
+  initialValues: T
+) {
+  const [values, setValues, clearStorage] = useLocalStorage<T>(storageKey, initialValues);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+  const updateField = useCallback(
+    <K extends keyof T>(field: K, value: T[K]) => {
+      setValues((prev) => ({ ...prev, [field]: value }));
+      setLastSavedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    },
+    [setValues]
+  );
+
+  const resetForm = useCallback(() => {
+    clearStorage();
+    setLastSavedAt(null);
+  }, [clearStorage]);
+
+  return {
+    values,
+    setValues,
+    updateField,
+    resetForm,
+    lastSavedAt,
+  };
+}
+
+export type WebSocketStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'error';
+
+export function useWebSocket(url: string | null, enabled = false) {
+  const [status, setStatus] = useState<WebSocketStatus>('idle');
+  const [lastMessage, setLastMessage] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    if (!enabled || !url || typeof WebSocket === 'undefined') {
+      setStatus('idle');
+      return;
+    }
+    setStatus('connecting');
+    try {
+      const ws = new WebSocket(url);
+      wsRef.current = ws;
+      ws.onopen = () => setStatus('open');
+      ws.onmessage = (e) => setLastMessage(String(e.data));
+      ws.onerror = () => setStatus('error');
+      ws.onclose = () => setStatus('closed');
+      return () => {
+        ws.close();
+        wsRef.current = null;
+      };
+    } catch {
+      setStatus('error');
+    }
+  }, [url, enabled]);
+
+  const sendMessage = useCallback((payload: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(payload);
+      return true;
+    }
+    return false;
+  }, []);
+
+  return { status, lastMessage, sendMessage };
+}
+
+export function useAbility(
+  rolePermissions: Record<string, string[]>,
+  activeRole: string
+) {
+  const can = useCallback(
+    (resource: string, action: string) => {
+      const allowed = rolePermissions[activeRole] ?? [];
+      return (
+        allowed.includes('*') ||
+        allowed.includes(`${resource}:*`) ||
+        allowed.includes(`${resource}:${action}`)
+      );
+    },
+    [rolePermissions, activeRole]
+  );
+
+  return { can };
+}
+

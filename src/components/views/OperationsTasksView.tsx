@@ -256,21 +256,33 @@ export function OperationsTasksView({
                     items={[
                       {
                         id: 'faq-1',
-                        title: 'How do I trigger global search or pin views?',
+                        title: 'How do I navigate quickly with Command Palette, Favorites, and Shortcuts?',
                         content:
-                          'Press Ctrl+K (or Cmd+K on macOS) anywhere in the console to jump to orders, customers, or UI modules. Use the Quick Access Favorites Bar below the header to pin frequent routes or accounts.',
+                          'Press Ctrl+K (or Cmd+K on macOS) anywhere to open the fuzzy Command Palette across orders, customers, routes, and component sections. Pin frequent queues or records to the Quick Access Favorites Bar below the header, or press ? to view two-key Vim chords (G+O, G+L, G+F, G+C, G+S, G+K).',
                       },
                       {
                         id: 'faq-2',
-                        title: 'How does File Storage modal selection work?',
+                        title: 'How do I filter Time-Series Analytics and export Orders or Grids to PDF?',
                         content:
-                          'Open File Storage from the sidebar or use StorageFormField inside forms to constrain selection to a specific folder root such as Compliance Documents.',
+                          'On Overview or Reports & Heatmap, switch between Area, Line, Bar, Stacked, Composed, and Donut views while slicing by date range (7D, 30D, 90D, Custom), granularity (Day, Week, Month), metric, channels, and statuses. In the Orders Ledger or Order Detail Drawer, click Print / Export PDF to generate landscape tables or portrait dispatch sheets with verification QR codes (including full RTL/Arabic/Persian canvas rendering).',
                       },
                       {
                         id: 'faq-3',
-                        title: 'Can DataGrid columns be resized or switched to Compact?',
+                        title: 'How does File Storage and scoped modal form selection work?',
                         content:
-                          'Yes. Use the Compact/Standard density switcher in the Orders Ledger toolbar, drag any column divider handle to resize widths, and persist preferences locally.',
+                          'Open File Storage from the sidebar to browse in Open Folder or Split Tree mode, create folders/files, drag-and-drop upload, or edit text/JSON/CSV files inline. Inside forms, FileStoragePickerModal and StorageFormField accept a rootFolderId prop to lock browsing, search, and uploads strictly inside a predefined directory such as Partner Contracts or Compliance & SOC2.',
+                      },
+                      {
+                        id: 'faq-4',
+                        title: 'How do DataGrid customization, Kanban status flow, and RBAC work?',
+                        content:
+                          'In the Orders Ledger, toggle Compact/Standard density, resize or reorder/pin columns, and run scoped bulk actions across selected rows or active filters. Use Commerce → Orders → Kanban board to move orders across status stages, and Admin & security → Users & permissions to configure the Role & Permission Matrix and inspect active sessions.',
+                      },
+                      {
+                        id: 'faq-5',
+                        title: 'How do I inspect API payloads or configs with JSONViewer and the UI Kit?',
+                        content:
+                          'Open UI System → All components to test 40+ primitives, Gregorian & Persian (Jalali) pickers, FormWizard, Rich Text & Markdown editors, and the JSONViewer debugger—featuring syntax highlighting, collapsible nodes, key/value search with Prev/Next jumping, Matches-only filtering, JSONPath copy, and raw view toggle.',
                       },
                     ]}
                   />

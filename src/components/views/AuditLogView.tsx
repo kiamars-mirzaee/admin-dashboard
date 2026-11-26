@@ -11,6 +11,7 @@ import type { AuditLogCategory, NotificationSeverity } from '../../types/admin';
 import { INITIAL_AUDIT_LOGS, filterAuditLogs } from '../../utils/adminSuite';
 import { useI18n } from '../../i18n/I18nContext';
 import { Button } from '../ui/Button';
+import { DiffViewer } from '../ui/EnterpriseDataKit';
 import { EmptyState } from '../ui/EmptyState';
 import { SegmentedControl } from '../ui/SegmentedControl';
 
@@ -19,6 +20,7 @@ export function AuditLogView() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<AuditLogCategory | 'all'>('all');
   const [severity, setSeverity] = useState<NotificationSeverity | 'all'>('all');
+  const [expandedDiffId, setExpandedDiffId] = useState<string | null>(INITIAL_AUDIT_LOGS[0]?.id ?? null);
 
   const filtered = useMemo(
     () => filterAuditLogs(INITIAL_AUDIT_LOGS, { query, category, severity }),
@@ -155,21 +157,51 @@ export function AuditLogView() {
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
                   {entry.details}
                 </p>
-                <div className="flex flex-wrap items-center gap-2 mt-2 text-[11px] text-slate-400">
-                  <span className="font-medium text-slate-600 dark:text-slate-300">
-                    {entry.actor}
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span dir="ltr" className="font-mono">
-                    {entry.actorEmail}
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span dir="ltr" className="font-mono">
-                    {entry.ip}
-                  </span>
-                  <span aria-hidden="true">·</span>
-                  <span className="uppercase font-mono">{entry.category}</span>
+                <div className="flex flex-wrap items-center justify-between gap-2 mt-2 text-[11px] text-slate-400">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium text-slate-600 dark:text-slate-300">
+                      {entry.actor}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span dir="ltr" className="font-mono">
+                      {entry.actorEmail}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span dir="ltr" className="font-mono">
+                      {entry.ip}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span className="uppercase font-mono">{entry.category}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setExpandedDiffId((cur) => (cur === entry.id ? null : entry.id))}
+                    className="text-blue-600 dark:text-blue-400 font-medium hover:underline cursor-pointer"
+                  >
+                    {expandedDiffId === entry.id ? 'Hide diff' : 'Inspect diff'}
+                  </button>
                 </div>
+
+                {expandedDiffId === entry.id && (
+                  <div className="mt-3">
+                    <DiffViewer
+                      title={`State Diff · ${entry.target}`}
+                      before={{
+                        target: entry.target,
+                        status: 'pending_review',
+                        dualControl: false,
+                        actor: entry.actor,
+                      }}
+                      after={{
+                        target: entry.target,
+                        status: entry.severity === 'warning' ? 'flagged' : 'verified',
+                        dualControl: true,
+                        actor: entry.actor,
+                        verifiedIp: entry.ip,
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </article>
           ))}

@@ -23,7 +23,16 @@ export interface AuthErrorShowcaseViewProps {
   onGoHome: () => void;
 }
 
-type AuthTabMode = 'login' | 'register' | 'forgot' | 'reset' | 'otp' | 'lock';
+type AuthTabMode =
+  | 'login'
+  | 'register'
+  | 'forgot'
+  | 'reset'
+  | 'otp'
+  | 'lock'
+  | '2fa-setup'
+  | 'verify-invite'
+  | 'onboarding';
 
 export function AuthErrorShowcaseView({
   initialMode = 'auth',
@@ -89,7 +98,10 @@ export function AuthErrorShowcaseView({
     forgot: { label: t('authTabForgot'), icon: <Mail className="w-5 h-5" /> },
     reset: { label: 'Reset Password', icon: <KeyRound className="w-5 h-5" /> },
     otp: { label: t('authTabOtp'), icon: <ShieldCheck className="w-5 h-5" /> },
-    lock: { label: 'Lock Screen', icon: <Lock className="w-5 h-5" /> },
+    lock: { label: 'Account Lockout & Unlock', icon: <Lock className="w-5 h-5" /> },
+    '2fa-setup': { label: '2FA Setup & Recovery Codes', icon: <ShieldCheck className="w-5 h-5" /> },
+    'verify-invite': { label: 'Email Verify & Invite Accept', icon: <Mail className="w-5 h-5" /> },
+    onboarding: { label: 'First-Login Onboarding', icon: <UserPlus className="w-5 h-5" /> },
   };
 
   return (
@@ -116,9 +128,12 @@ export function AuthErrorShowcaseView({
             { value: 'login', label: t('authTabLogin') },
             { value: 'register', label: 'Register' },
             { value: 'forgot', label: t('authTabForgot') },
-            { value: 'reset', label: 'Reset' },
+            { value: 'reset', label: 'Change Pwd' },
             { value: 'otp', label: t('authTabOtp') },
-            { value: 'lock', label: 'Lock' },
+            { value: '2fa-setup', label: '2FA Setup' },
+            { value: 'verify-invite', label: 'Verify/Invite' },
+            { value: 'lock', label: 'Lockout' },
+            { value: 'onboarding', label: 'Onboarding' },
           ]}
         />
       </div>
@@ -204,6 +219,31 @@ export function AuthErrorShowcaseView({
               >
                 {t('authSignInBtn')}
               </Button>
+
+              <div className="relative py-1 flex items-center justify-center text-[11px] text-slate-400">
+                <span className="px-2 bg-white dark:bg-slate-900 z-10">or continue with SSO / Magic Link</span>
+                <span className="absolute inset-x-0 top-1/2 h-px bg-slate-200 dark:bg-slate-800" />
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {['Google SSO', 'GitHub OAuth', 'Magic Link'].map((provider) => (
+                  <Button
+                    key={provider}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setAuthNotice(
+                        provider === 'Magic Link'
+                          ? `One-time Magic Link dispatched to ${email}`
+                          : `Redirecting via ${provider} SAML/OIDC...`
+                      )
+                    }
+                  >
+                    {provider}
+                  </Button>
+                ))}
+              </div>
             </form>
           )}
 
@@ -340,6 +380,11 @@ export function AuthErrorShowcaseView({
               }}
               className="space-y-4"
             >
+              <Alert
+                variant="warning"
+                title="Account Lockout Policy (5 failed attempts)"
+                description="Cooldown active for 14m 20s or unlock immediately with master recovery passkey."
+              />
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -361,6 +406,109 @@ export function AuthErrorShowcaseView({
                 Unlock Console Session
               </Button>
             </form>
+          )}
+
+          {authTab === '2fa-setup' && (
+            <div className="space-y-4">
+              <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-24 h-24 rounded-xl bg-white p-2 border border-slate-200 grid grid-cols-5 gap-0.5 shrink-0" aria-label="2FA QR Code">
+                  {Array.from({ length: 25 }, (_, i) => (
+                    <span
+                      key={i}
+                      className={i % 2 === 0 || i % 7 === 0 ? 'bg-slate-900 rounded-[1px]' : 'bg-white'}
+                    />
+                  ))}
+                </div>
+                <div className="space-y-1.5 text-xs">
+                  <p className="font-semibold text-slate-900 dark:text-white">
+                    Scan Authenticator QR Code
+                  </p>
+                  <p className="text-slate-500">Manual Setup Secret Key:</p>
+                  <code dir="ltr" className="inline-block px-2 py-1 rounded bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 font-mono text-[11px]">
+                    KSTL-49XP-99QR-2026
+                  </code>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  Single-Use Backup Recovery Codes
+                </p>
+                <div dir="ltr" className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+                  {['8492-A1B2', '3301-C9D4', '7741-E2F8', '5019-G6H3'].map((code) => (
+                    <div key={code} className="px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-center">
+                      {code}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                className="w-full"
+                onClick={() => setAuthNotice('2FA Hardware Authenticator enabled & recovery codes confirmed')}
+              >
+                Activate 2FA Protection
+              </Button>
+            </div>
+          )}
+
+          {authTab === 'verify-invite' && (
+            <div className="space-y-4 text-xs">
+              <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 space-y-2">
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  Workspace Invitation · Kestrel EU Clearing
+                </p>
+                <p className="text-slate-600 dark:text-slate-300">
+                  Elena Rostova invited <strong dir="ltr">{email}</strong> as <strong>Operations Lead</strong>.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    onClick={() => setAuthNotice('Email verified & workspace invitation accepted')}
+                  >
+                    Verify Email &amp; Accept Invite
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setAuthNotice(`Verification link re-sent to ${email}`)}
+                  >
+                    Resend Verification Email
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {authTab === 'onboarding' && (
+            <div className="space-y-3 text-xs">
+              {[
+                { step: '1. Organization Profile', detail: 'Kestrel EU Clearing · Currency EUR/USD', done: true },
+                { step: '2. Settlement Rails & Webhooks', detail: 'SEPA Instant + Dual-Control Approval', done: true },
+                { step: '3. Invite Compliance Reviewers', detail: 'Add at least 1 reviewer to enable go-live', done: false },
+              ].map((item) => (
+                <div key={item.step} className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-900 dark:text-white">{item.step}</p>
+                    <p className="text-[11px] text-slate-500">{item.detail}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${item.done ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300' : 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'}`}>
+                    {item.done ? 'Complete' : 'Pending'}
+                  </span>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                className="w-full"
+                onClick={() => setAuthNotice('First-login workspace onboarding completed!')}
+              >
+                Complete Workspace Setup
+              </Button>
+            </div>
           )}
         </div>
       </AuthLayout>

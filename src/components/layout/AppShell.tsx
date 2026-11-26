@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Bell,
   Blocks,
+  Eye,
   FolderOpen,
   Globe,
   History,
@@ -18,6 +19,7 @@ import {
   QrCode,
   ReceiptText,
   Search,
+  Server,
   Settings,
   ShieldCheck,
   Sun,
@@ -41,6 +43,15 @@ import { useShortcuts } from '../ui/KeyboardShortcutManager';
 import { NestedNavMenu } from '../ui/NestedNavMenu';
 import { useNotifications } from '../ui/NotificationSystem';
 import { Popover } from '../ui/Tooltip';
+import {
+  AnnouncementBar,
+  DEFAULT_WORKSPACES,
+  ImpersonationBanner,
+  OfflineReconnectingBanner,
+  SkipLink,
+  WorkspaceSwitcher,
+  type WorkspaceTenant,
+} from './ShellOverlays';
 
 interface MobileTabItem {
   id: NavSection;
@@ -101,6 +112,11 @@ export interface AppShellProps {
   onOpenCommandPalette?: () => void;
   onOpenQrScanner?: () => void;
   quickAccessBar?: React.ReactNode;
+  activeWorkspaceId?: string;
+  onChangeWorkspace?: (workspace: WorkspaceTenant) => void;
+  impersonatedUser?: { name: string; role: string } | null;
+  onStartImpersonation?: () => void;
+  onExitImpersonation?: () => void;
   children: React.ReactNode;
 }
 
@@ -118,6 +134,11 @@ export function AppShell({
   onOpenCommandPalette,
   onOpenQrScanner,
   quickAccessBar,
+  activeWorkspaceId = DEFAULT_WORKSPACES[0].id,
+  onChangeWorkspace,
+  impersonatedUser = null,
+  onStartImpersonation,
+  onExitImpersonation,
   children,
 }: AppShellProps) {
   const { locale, setLocale, t } = useI18n();
@@ -170,6 +191,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row">
+      <SkipLink targetId="main-content" />
       {/* Collapsible Desktop Sidebar (Left in LTR, Right in RTL) */}
       <aside
         data-testid="desktop-sidebar"
@@ -214,9 +236,18 @@ export function AppShell({
           </button>
         </div>
 
+        <div className="px-3 pt-3 shrink-0">
+          <WorkspaceSwitcher
+            workspaces={DEFAULT_WORKSPACES}
+            activeId={activeWorkspaceId}
+            onChange={(ws) => onChangeWorkspace?.(ws)}
+            compact={sidebarCollapsed}
+          />
+        </div>
+
         <nav
           aria-label="Primary navigation"
-          className="flex-1 overflow-y-auto px-3 py-4"
+          className="flex-1 overflow-y-auto px-3 py-3"
         >
           {sidebarCollapsed ? (
             <ul className="space-y-1.5">
@@ -287,6 +318,18 @@ export function AppShell({
           sidebarCollapsed ? 'lg:ps-20' : 'lg:ps-64'
         }`}
       >
+        <div className="no-print">
+          <AnnouncementBar
+            ctaLabel={t('navOperationsHub')}
+            onCtaClick={() => onNavigate('operations-hub')}
+          />
+          <ImpersonationBanner
+            targetUser={impersonatedUser?.name ?? null}
+            targetRole={impersonatedUser?.role}
+            onExit={() => onExitImpersonation?.()}
+          />
+          <OfflineReconnectingBanner />
+        </div>
         {/* Top Header */}
         <header className="no-print sticky top-0 z-30 h-13 lg:h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 lg:px-8 flex items-center justify-between gap-2 sm:gap-3">
           {/* Start: Mobile Menu Drawer Trigger + Title / Desktop Active Breadcrumb Trail */}
@@ -474,6 +517,17 @@ export function AppShell({
                     type="button"
                     onClick={() => {
                       close();
+                      onNavigate('operations-hub');
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Server className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t('navOperationsHub')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
                       onNavigate('auth-flows');
                     }}
                     className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
@@ -481,6 +535,19 @@ export function AppShell({
                     <KeyRound className="w-3.5 h-3.5 text-slate-400" />
                     <span>{t('navAuthFlows')}</span>
                   </button>
+                  {onStartImpersonation && !impersonatedUser && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close();
+                        onStartImpersonation();
+                      }}
+                      className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Impersonate Operator</span>
+                    </button>
+                  )}
                 </div>
               )}
             </Popover>
@@ -509,7 +576,7 @@ export function AppShell({
         {quickAccessBar}
 
         {/* Main Viewport */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
+        <main id="main-content" tabIndex={-1} className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 focus:outline-none">
           {breadcrumbItems.length > 1 && (
             <div className="lg:hidden mb-3 pb-2 border-b border-slate-200/70 dark:border-slate-800/80">
               <Breadcrumb
@@ -598,12 +665,19 @@ export function AppShell({
           </button>
         }
       >
-        <NestedNavMenu
-          nodes={navTree}
-          activeRoute={activeRoute}
-          onSelectRoute={handleSelectFromMobileMenu}
-          searchable
-        />
+        <div className="space-y-3">
+          <WorkspaceSwitcher
+            workspaces={DEFAULT_WORKSPACES}
+            activeId={activeWorkspaceId}
+            onChange={(ws) => onChangeWorkspace?.(ws)}
+          />
+          <NestedNavMenu
+            nodes={navTree}
+            activeRoute={activeRoute}
+            onSelectRoute={handleSelectFromMobileMenu}
+            searchable
+          />
+        </div>
       </AdaptiveDrawer>
 
       {/* Mobile Fixed Bottom Navigation Bar (56px height) */}

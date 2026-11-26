@@ -803,6 +803,8 @@ export const TRANSLATIONS = {
     navHelpSupport: 'Help & Docs',
     navErrorMaintenance: 'Maintenance 503',
     navErrorOffline: 'Offline State',
+    navOperationsHub: 'Platform Ops & Billing',
+    recentItemsLabel: 'Recent',
   },
 
   ar: {
@@ -1593,6 +1595,8 @@ export const TRANSLATIONS = {
     navHelpSupport: 'المساعدة والوثائق',
     navErrorMaintenance: 'صيانة 503',
     navErrorOffline: 'حالة عدم الاتصال',
+    navOperationsHub: 'العمليات والفوترة',
+    recentItemsLabel: 'الأخيرة',
   },
 
   fa: {
@@ -2383,6 +2387,8 @@ export const TRANSLATIONS = {
     navHelpSupport: 'راهنما و مستندات',
     navErrorMaintenance: 'وضعیت تعمیرات ۵۰۳',
     navErrorOffline: 'حالت آفلاین',
+    navOperationsHub: 'عملیات، تیم و مالی',
+    recentItemsLabel: 'اخیر',
   },
 
   es: {
@@ -3173,6 +3179,8 @@ export const TRANSLATIONS = {
     navHelpSupport: 'Ayuda y Docs',
     navErrorMaintenance: 'Mantenimiento 503',
     navErrorOffline: 'Sin conexión',
+    navOperationsHub: 'Ops y Facturación',
+    recentItemsLabel: 'Recientes',
   },
 } as const;
 

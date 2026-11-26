@@ -3,6 +3,7 @@ import type {
   OrderRecord,
   SortConfig,
 } from '../types/admin';
+import { matchesNormalizedQuery, normalizeDigits } from './persianRtl';
 
 export interface PaginationResult<T> {
   items: T[];
@@ -37,9 +38,11 @@ export function filterOrders(
   filters: OrderFilters,
   referenceDateIso: string = '2026-11-22'
 ): OrderRecord[] {
-  const query = filters.search.trim().toLowerCase();
-  const minAmt = filters.minAmount.trim() !== '' ? Number(filters.minAmount) : null;
-  const maxAmt = filters.maxAmount.trim() !== '' ? Number(filters.maxAmount) : null;
+  const query = filters.search.trim();
+  const minAmtStr = normalizeDigits(filters.minAmount).trim();
+  const maxAmtStr = normalizeDigits(filters.maxAmount).trim();
+  const minAmt = minAmtStr !== '' ? Number(minAmtStr) : null;
+  const maxAmt = maxAmtStr !== '' ? Number(maxAmtStr) : null;
 
   const refMs = parseIsoDateUtc(referenceDateIso);
   let presetCutoffMs: number | null = null;
@@ -69,10 +72,8 @@ export function filterOrders(
         order.company,
         order.planOrItem,
         order.region,
-      ]
-        .join(' ')
-        .toLowerCase();
-      if (!haystack.includes(query)) {
+      ].join(' ');
+      if (!matchesNormalizedQuery(haystack, query)) {
         return false;
       }
     }

@@ -26,7 +26,8 @@ export type NavIconKey =
   | 'fileEdit'
   | 'fileText'
   | 'tasks'
-  | 'help';
+  | 'help'
+  | 'operations';
 
 export interface NavNode {
   id: NavRouteId;
@@ -148,6 +149,11 @@ export function buildAdminNavTree(
           id: 'settings',
           label: t('navSettings'),
           icon: 'settings',
+        },
+        {
+          id: 'operations-hub',
+          label: t('navOperationsHub'),
+          icon: 'operations',
         },
         {
           id: 'auth-flows',
@@ -276,6 +282,7 @@ export function getSectionForRoute(routeId: NavRouteId): NavSection {
   if (routeId === 'audit-log') return 'audit';
   if (routeId === 'access-control' || routeId === 'admin-group') return 'access';
   if (routeId === 'settings') return 'settings';
+  if (routeId === 'operations-hub') return 'operations';
   if (routeId === 'auth-flows') return 'auth';
   if (routeId.startsWith('error-')) return 'errors';
   if (routeId.startsWith('orders') || routeId.startsWith('order-') || routeId === 'commerce') {

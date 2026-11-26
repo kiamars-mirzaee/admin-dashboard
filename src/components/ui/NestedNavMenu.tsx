@@ -21,6 +21,7 @@ import {
   ListChecks,
   ReceiptText,
   Search,
+  Server,
   Settings,
   ShieldAlert,
   ShieldCheck,
@@ -89,6 +90,8 @@ function renderNavIcon(icon?: NavIconKey) {
       return <ListChecks className={cls} aria-hidden="true" />;
     case 'help':
       return <HelpCircle className={cls} aria-hidden="true" />;
+    case 'operations':
+      return <Server className={cls} aria-hidden="true" />;
   }
 }
 

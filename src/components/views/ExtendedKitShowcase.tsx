@@ -69,6 +69,46 @@ import {
   usePermission,
 } from '../ui/SharedComposites';
 import { Tabs } from '../ui/Tabs';
+import {
+  BackgroundTaskManager,
+  type BackgroundTaskItem,
+  FeedbackWidget,
+  OfflineReconnectingBanner,
+  ProductTourModal,
+  SessionTimeoutModal,
+} from '../layout/ShellOverlays';
+import {
+  Barcode,
+  FunnelChart,
+  OrgChart,
+  ScatterChart,
+  TreemapChart,
+} from '../ui/AdvancedCharts';
+import {
+  EnterpriseTable,
+  LogViewer,
+  MediaPlayer,
+  PDFPreviewCard,
+} from '../ui/EnterpriseDataKit';
+import {
+  CascaderField,
+  ConditionalAndMultiLangForm,
+  IconCronDurationControls,
+  InputGroupAndMask,
+  MentionLocationSignatureCaptcha,
+  TransferList,
+  TreeSelectField,
+} from '../ui/AdvancedFormKit';
+import {
+  ApprovalFlow,
+  AttachmentsList,
+  BottomSheet,
+  Popconfirm,
+  TagCategoryManager,
+  TemplateEditor,
+  TrashRecovery,
+  VersionHistory,
+} from '../ui/BusinessModulesKit';
 
 export interface ExtendedKitShowcaseProps {
   showInputs: boolean;
@@ -113,6 +153,14 @@ export function ExtendedKitShowcase({
   const debouncedFilter = useDebounce(filterText, 250);
   const [jsonPreset, setJsonPreset] = useState<'api' | 'config' | 'malformed'>('api');
   const [jsonSurface, setJsonSurface] = useState<'dark' | 'auto'>('dark');
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const [timeoutModalOpen, setTimeoutModalOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [simulateOffline, setSimulateOffline] = useState(false);
+  const [bgTasks, setBgTasks] = useState<BackgroundTaskItem[]>([
+    { id: 'bg-1', title: 'Q4 Ledger PDF Compilation', progress: 100, status: 'completed', detail: 'Ready in Vault / Reports' },
+    { id: 'bg-2', title: 'SEPA Sanctions Delta Sync', progress: 64, status: 'running', detail: 'Processing chunk 16 / 25' },
+  ]);
 
   const jsonPresets: Record<
     'api' | 'config' | 'malformed',
@@ -416,6 +464,61 @@ export function ExtendedKitShowcase({
         </section>
       )}
 
+      {/* Layer 2B: Enterprise Form Controls (Transfer, Cascader, TreeSelect, Masks, Conditional, Cron, Signature, Captcha) */}
+      {showInputs && (
+        <section
+          id="kit-section-advanced-forms"
+          data-testid="kit-section-advanced-forms"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5"
+        >
+          <div>
+            <Heading level={3}>
+              Transfer List, Cascader, TreeSelect, Masks, Conditional &amp; Signature Controls
+            </Heading>
+            <Text tone="muted" size="xs">
+              Persian digit normalization (۰-۹ → 0-9), dual-list role transfer, province/city cascader, bilingual FA/EN auto-save form, cron parser, @mention, map pin picker, signature pad, and captcha.
+            </Text>
+          </div>
+
+          <TransferList
+            items={[
+              { id: 'p-view', label: 'orders:view (View Ledger)' },
+              { id: 'p-export', label: 'orders:export (CSV & PDF)' },
+              { id: 'p-approve', label: 'settlement:approve (Dual Control)' },
+              { id: 'p-fa', label: 'reports:jalali (Persian Calendar)' },
+              { id: 'p-keys', label: 'security:rotate_keys' },
+            ]}
+            initialAssignedIds={['p-view', 'p-export', 'p-fa']}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <CascaderField />
+            <TreeSelectField
+              options={[
+                {
+                  id: 'cat-rails',
+                  label: 'Payment Rails',
+                  children: [
+                    { id: 'cat-sepa', label: 'SEPA Instant' },
+                    { id: 'cat-swift', label: 'SWIFT Wire' },
+                  ],
+                },
+                {
+                  id: 'cat-compliance',
+                  label: 'Compliance & Tax',
+                  children: [{ id: 'cat-kyb', label: 'KYB / Sanctions' }],
+                },
+              ]}
+            />
+          </div>
+
+          <InputGroupAndMask />
+          <ConditionalAndMultiLangForm />
+          <IconCronDurationControls />
+          <MentionLocationSignatureCaptcha />
+        </section>
+      )}
+
       {/* Layer 3: Radar, Gauge, Calendar, Timeline, Gallery, VirtualList */}
       {showCharts && (
         <section className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5">
@@ -589,6 +692,95 @@ export function ExtendedKitShowcase({
         </section>
       )}
 
+      {/* Layer 3B: Enterprise Table (Inline Edit, Group, Tree, Drag Reorder, Master-Detail, Jalali & FA Collator) */}
+      {showCharts && (
+        <section
+          id="kit-section-enterprise-table"
+          data-testid="kit-section-enterprise-table"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5"
+        >
+          <div>
+            <Heading level={3}>
+              Enterprise Table, Cell Renderers, Diff &amp; Diagnostics
+            </Heading>
+            <Text tone="muted" size="xs">
+              Saved views, grouped rows, tree child expansion, drag-to-reorder, master-detail drawer row, inline cell editing, summary footer, Intl.Collator(&apos;fa&apos;) sort, Jalali dates, &lt;bdi&gt; isolation, LogViewer, PDF preview, and Media player.
+            </Text>
+          </div>
+
+          <EnterpriseTable />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <ChartCard title="Conversion Funnel" subtitle="Checkout to settled clearing">
+              <FunnelChart
+                stages={[
+                  { id: 'f1', label: 'API Intent Created', value: 4200, color: '#2563EB' },
+                  { id: 'f2', label: 'KYB / Sanctions Cleared', value: 3480, color: '#0EA5E9' },
+                  { id: 'f3', label: 'Settlement Confirmed', value: 2940, color: '#059669' },
+                ]}
+              />
+            </ChartCard>
+
+            <ChartCard title="Latency vs Value Scatter" subtitle="Settlement correlation">
+              <ScatterChart
+                points={[
+                  { id: 's1', label: 'ORD-8490', x: 42, y: 4850 },
+                  { id: 's2', label: 'ORD-8491', x: 68, y: 3290 },
+                  { id: 's3', label: 'ORD-8492', x: 115, y: 9200 },
+                  { id: 's4', label: 'ORD-8489', x: 29, y: 1620 },
+                  { id: 's5', label: 'ORD-8487', x: 84, y: 6400 },
+                ]}
+              />
+            </ChartCard>
+
+            <ChartCard title="Volume Treemap &amp; Barcode" subtitle="Proportional channel share">
+              <div className="space-y-3">
+                <TreemapChart
+                  items={[
+                    { id: 'tm1', label: 'Enterprise', value: 18400, tone: 'blue' },
+                    { id: 'tm2', label: 'Direct', value: 9200, tone: 'emerald' },
+                    { id: 'tm3', label: 'Partner', value: 5400, tone: 'amber' },
+                    { id: 'tm4', label: 'Marketplace', value: 3100, tone: 'violet' },
+                  ]}
+                />
+                <div className="flex justify-center">
+                  <Barcode value="ORD-8490-EU" height={34} />
+                </div>
+              </div>
+            </ChartCard>
+          </div>
+
+          <OrgChart
+            root={{
+              id: 'org-1',
+              name: 'Elena Rostova',
+              role: 'VP of Operations',
+              department: 'Executive Ops',
+              reports: [
+                { id: 'org-2', name: 'Marcus Chen', role: 'Clearing Lead', department: 'EMEA' },
+                { id: 'org-3', name: 'Sara Mohammadi', role: 'Treasury Lead', department: 'MENA' },
+                { id: 'org-4', name: 'Hana Takahashi', role: 'Risk Lead', department: 'APAC' },
+              ],
+            }}
+          />
+
+          <LogViewer
+            logs={[
+              { id: 'l1', timestamp: '14:22:01', level: 'info', service: 'sepa-rail', message: 'Batch #412 cleared in 38ms (eu-west-1)' },
+              { id: 'l2', timestamp: '14:22:14', level: 'warn', service: 'risk-engine', message: 'Velocity spike detected on ORD-8490 — queued for dual review' },
+              { id: 'l3', timestamp: '14:22:45', level: 'error', service: 'webhook-worker', message: 'HTTP 502 from harborpay.io — retry scheduled (attempt 2/5)' },
+            ]}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <PDFPreviewCard
+              onDownload={() => addToast({ title: 'Downloaded Q4-EMEA-Settlement-Audit.pdf', variant: 'success' })}
+            />
+            <MediaPlayer />
+          </div>
+        </section>
+      )}
+
       {/* Reusable JSONViewer Debugger */}
       {(showCharts || showStates) && (
         <section
@@ -638,9 +830,72 @@ export function ExtendedKitShowcase({
             title={jsonPresets[jsonPreset].title}
             data={jsonPresets[jsonPreset].data}
             surface={jsonSurface}
+            persistSearchKey="kestrel:kit-json-debugger"
             defaultExpandDepth={2}
             maxHeight="340px"
           />
+        </section>
+      )}
+
+      {/* Business Workflow Modules (ApprovalFlow, VersionHistory, TrashRecovery, Attachments, Tags, TemplateEditor) */}
+      {showWorkflows && (
+        <section
+          id="kit-section-business-modules"
+          data-testid="kit-section-business-modules"
+          className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-5"
+        >
+          <div>
+            <Heading level={3}>
+              Business Workflows: Approvals, Version Restore, Trash &amp; Template Editor
+            </Heading>
+            <Text tone="muted" size="xs">
+              Multi-stage approval flow, version history with instant restore, soft-delete trash recovery, attachments, tag manager, and variable-interpolated notification template editor.
+            </Text>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="space-y-2">
+              <Text size="xs" tone="muted" className="font-semibold uppercase tracking-wider">
+                Approval Flow Stepper
+              </Text>
+              <ApprovalFlow
+                initialStages={[
+                  { id: 'ap-1', role: 'Risk Triage', assignee: 'Hana Takahashi', status: 'approved', note: 'Sanctions cleared' },
+                  { id: 'ap-2', role: 'Treasury Sign-off', assignee: 'Elena Rostova', status: 'pending', note: 'Awaiting dual approval' },
+                ]}
+                onAction={(id, decision) =>
+                  addToast({ title: `Stage ${id} marked ${decision}`, variant: decision === 'approved' ? 'success' : 'warning' })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Text size="xs" tone="muted" className="font-semibold uppercase tracking-wider">
+                Version History (With Restore)
+              </Text>
+              <VersionHistory
+                versions={[
+                  { id: 'v3', version: 'v2.6.2', author: 'Elena Rostova', timestamp: '2026-11-22 14:10', summary: 'Raised SEPA instant threshold to $50k' },
+                  { id: 'v2', version: 'v2.6.1', author: 'Sara Mohammadi', timestamp: '2026-11-21 09:40', summary: 'Enabled Jalali PDF headers' },
+                ]}
+                onRestore={(v) => addToast({ title: `Restored ${v.version}`, variant: 'info' })}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+            <TrashRecovery
+              initialItems={[
+                { id: 'ORD-8477', title: 'Draft — Cobalt Freight', entityType: 'Order', deletedAt: '2h ago' },
+                { id: 'DOC-19', title: 'legacy-sepa-key.json', entityType: 'Storage File', deletedAt: '1d ago' },
+              ]}
+              onRestore={(item) => addToast({ title: `Restored ${item.id}`, variant: 'success' })}
+            />
+            <AttachmentsList />
+            <TagCategoryManager />
+          </div>
+
+          <TemplateEditor />
         </section>
       )}
 
@@ -847,8 +1102,130 @@ export function ExtendedKitShowcase({
               </div>
             }
           />
+
+          {/* Popconfirm, BottomSheet, SessionTimeoutModal, ProductTour, BackgroundTaskManager, FeedbackWidget, OfflineBanner */}
+          <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Popconfirm
+                title="Revoke stale API token?"
+                confirmLabel="Revoke"
+                onConfirm={() => addToast({ title: 'API token revoked', variant: 'warning' })}
+              >
+                <Button variant="outline" size="sm">
+                  Popconfirm Action
+                </Button>
+              </Popconfirm>
+              <Button variant="secondary" size="sm" onClick={() => setBottomSheetOpen(true)}>
+                Mobile BottomSheet
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setTimeoutModalOpen(true)}>
+                Session Timeout Modal
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setTourOpen(true)}>
+                Product Tour Coachmarks
+              </Button>
+              <Button
+                variant={simulateOffline ? 'danger' : 'outline'}
+                size="sm"
+                onClick={() => setSimulateOffline((v) => !v)}
+              >
+                {simulateOffline ? 'Hide Offline Banner' : 'Preview Offline Indicator'}
+              </Button>
+            </div>
+
+            {simulateOffline && (
+              <OfflineReconnectingBanner
+                forceOffline
+                onRetry={() => {
+                  setSimulateOffline(false);
+                  addToast({ title: 'Reconnected to Kestrel ledger', variant: 'success' });
+                }}
+              />
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <BackgroundTaskManager
+                tasks={bgTasks}
+                onClearCompleted={() =>
+                  setBgTasks((prev) => prev.filter((t) => t.status !== 'completed'))
+                }
+              />
+              <FeedbackWidget
+                onSubmit={(p) =>
+                  addToast({
+                    title: `Feedback sent (${p.sentiment})`,
+                    description: p.note || 'Thanks for helping improve Kestrel Ops.',
+                    variant: 'success',
+                  })
+                }
+              />
+            </div>
+          </div>
         </section>
       )}
+
+      <BottomSheet
+        open={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        title="Quick Settlement Actions (BottomSheet)"
+      >
+        <div className="space-y-3 text-xs text-slate-600 dark:text-slate-300">
+          <p>Mobile-ergonomic bottom sheet for single-handed confirmation and quick inspection.</p>
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setBottomSheetOpen(false)}>
+              Dismiss
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={() => {
+                setBottomSheetOpen(false);
+                addToast({ title: 'Action confirmed from BottomSheet', variant: 'success' });
+              }}
+            >
+              Confirm Batch
+            </Button>
+          </div>
+        </div>
+      </BottomSheet>
+
+      <SessionTimeoutModal
+        open={timeoutModalOpen}
+        initialSeconds={95}
+        onExtend={() => {
+          setTimeoutModalOpen(false);
+          addToast({ title: 'Session extended for 30 minutes', variant: 'success' });
+        }}
+        onSignOut={() => {
+          setTimeoutModalOpen(false);
+          addToast({ title: 'Signed out cleanly', variant: 'info' });
+        }}
+      />
+
+      <ProductTourModal
+        open={tourOpen}
+        onClose={() => setTourOpen(false)}
+        steps={[
+          {
+            id: 't-1',
+            badge: 'Workspace',
+            title: 'Multi-Tenant Organization Switcher',
+            description: 'Switch seamlessly between EU Clearing, MENA Treasury, and Staging Sandbox from the sidebar.',
+          },
+          {
+            id: 't-2',
+            badge: 'RTL & Jalali',
+            title: 'Persian Normalization & Solar Hijri',
+            description: 'Search automatically normalizes Persian/Arabic numerals and ک/ی characters across tables and logs.',
+          },
+          {
+            id: 't-3',
+            badge: 'Shortcuts',
+            title: 'Press Ctrl+K Anywhere',
+            description: 'Jump directly to orders, customers, file vaults, or component playgrounds from the command palette.',
+          },
+        ]}
+      />
 
       <DirectionDrawer
         open={drawerOpen}
