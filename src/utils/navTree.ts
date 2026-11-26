@@ -1,4 +1,6 @@
 import type { NavRouteId, NavSection } from '../types/admin';
+import type { TranslationKey } from '../i18n/translations';
+import { translate } from './i18n';
 
 export type NavIconKey =
   | 'overview'
@@ -13,7 +15,18 @@ export type NavIconKey =
   | 'layers'
   | 'chart'
   | 'table'
-  | 'storage';
+  | 'storage'
+  | 'kanban'
+  | 'reports'
+  | 'audit'
+  | 'shield'
+  | 'settings'
+  | 'key'
+  | 'error'
+  | 'fileEdit'
+  | 'fileText'
+  | 'tasks'
+  | 'help';
 
 export interface NavNode {
   id: NavRouteId;
@@ -22,9 +35,6 @@ export interface NavNode {
   badgeCount?: number;
   children?: NavNode[];
 }
-
-import type { TranslationKey } from '../i18n/translations';
-import { translate } from './i18n';
 
 export function buildAdminNavTree(
   counts: {
@@ -67,6 +77,21 @@ export function buildAdminNavTree(
               icon: 'pending',
               badgeCount: counts.pendingOrders > 0 ? counts.pendingOrders : undefined,
             },
+            {
+              id: 'kanban',
+              label: t('navKanban'),
+              icon: 'kanban',
+            },
+            {
+              id: 'order-detail',
+              label: t('navOrderDetail'),
+              icon: 'fileText',
+            },
+            {
+              id: 'order-editor',
+              label: t('navOrderEditor'),
+              icon: 'fileEdit',
+            },
           ],
         },
         {
@@ -95,9 +120,76 @@ export function buildAdminNavTree(
       ],
     },
     {
+      id: 'reports',
+      label: t('navReports'),
+      icon: 'reports',
+    },
+    {
+      id: 'audit-log',
+      label: t('navAuditLog'),
+      icon: 'audit',
+    },
+    {
       id: 'storage',
       label: t('navStorage'),
       icon: 'storage',
+    },
+    {
+      id: 'admin-group',
+      label: t('navAdminGroup'),
+      icon: 'shield',
+      children: [
+        {
+          id: 'access-control',
+          label: t('navAccessControl'),
+          icon: 'shield',
+        },
+        {
+          id: 'settings',
+          label: t('navSettings'),
+          icon: 'settings',
+        },
+        {
+          id: 'auth-flows',
+          label: t('navAuthFlows'),
+          icon: 'key',
+        },
+        {
+          id: 'error-403',
+          label: t('navError403'),
+          icon: 'error',
+        },
+        {
+          id: 'error-404',
+          label: t('navError404'),
+          icon: 'error',
+        },
+        {
+          id: 'error-500',
+          label: t('navError500'),
+          icon: 'error',
+        },
+        {
+          id: 'error-maintenance',
+          label: t('navErrorMaintenance'),
+          icon: 'error',
+        },
+        {
+          id: 'error-offline',
+          label: t('navErrorOffline'),
+          icon: 'error',
+        },
+      ],
+    },
+    {
+      id: 'tasks-queue',
+      label: t('navTasksQueue'),
+      icon: 'tasks',
+    },
+    {
+      id: 'help-support',
+      label: t('navHelpSupport'),
+      icon: 'help',
     },
     {
       id: 'ui-system',
@@ -177,9 +269,19 @@ export function isNodeActiveOrAncestor(
 export function getSectionForRoute(routeId: NavRouteId): NavSection {
   if (routeId === 'overview') return 'overview';
   if (routeId === 'storage') return 'storage';
-  if (routeId.startsWith('orders')) return 'orders';
+  if (routeId === 'tasks-queue') return 'tasks';
+  if (routeId === 'help-support') return 'help';
+  if (routeId === 'kanban') return 'kanban';
+  if (routeId === 'reports') return 'reports';
+  if (routeId === 'audit-log') return 'audit';
+  if (routeId === 'access-control' || routeId === 'admin-group') return 'access';
+  if (routeId === 'settings') return 'settings';
+  if (routeId === 'auth-flows') return 'auth';
+  if (routeId.startsWith('error-')) return 'errors';
+  if (routeId.startsWith('orders') || routeId.startsWith('order-') || routeId === 'commerce') {
+    return 'orders';
+  }
   if (routeId.startsWith('customers')) return 'customers';
-  if (routeId === 'commerce') return 'orders';
   return 'components';
 }
 

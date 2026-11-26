@@ -59,3 +59,58 @@ export function Avatar({ src, name, size = 'md', className = '' }: AvatarProps) 
     </div>
   );
 }
+
+export interface AvatarGroupMember {
+  id: string;
+  name: string;
+  src?: string;
+}
+
+export interface AvatarGroupProps {
+  members: AvatarGroupMember[];
+  max?: number;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+}
+
+export function AvatarGroup({
+  members,
+  max = 4,
+  size = 'sm',
+  className = '',
+}: AvatarGroupProps) {
+  const visible = members.slice(0, max);
+  const overflow = Math.max(0, members.length - visible.length);
+
+  const overflowSize: Record<NonNullable<AvatarGroupProps['size']>, string> = {
+    sm: 'w-8 h-8 text-[11px]',
+    md: 'w-9 h-9 text-xs',
+    lg: 'w-12 h-12 text-sm',
+  };
+
+  return (
+    <div
+      className={`inline-flex items-center -space-x-2 rtl:space-x-reverse ${className}`}
+      role="group"
+      aria-label={`${members.length} team members`}
+    >
+      {visible.map((m) => (
+        <div
+          key={m.id}
+          title={m.name}
+          className="rounded-full ring-2 ring-white dark:ring-slate-900"
+        >
+          <Avatar src={m.src} name={m.name} size={size} />
+        </div>
+      ))}
+      {overflow > 0 && (
+        <div
+          aria-label={`${overflow} more members`}
+          className={`${overflowSize[size]} rounded-full ring-2 ring-white dark:ring-slate-900 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-mono font-semibold flex items-center justify-center tabular-nums shrink-0`}
+        >
+          +{overflow}
+        </div>
+      )}
+    </div>
+  );
+}

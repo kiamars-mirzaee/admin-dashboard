@@ -4,6 +4,7 @@ import type {
   NavRouteId,
   OrderFilters,
   OrderRecord,
+  OrderStatus,
 } from './types/admin';
 import {
   DEFAULT_ORDER_FILTERS,
@@ -34,6 +35,7 @@ import type { ShortcutId } from './utils/shortcuts';
 import { I18nProvider, useI18n } from './i18n/I18nContext';
 import { CommandPalette } from './components/ui/CommandPalette';
 import { ShortcutProvider } from './components/ui/KeyboardShortcutManager';
+import { ConfirmModal } from './components/ui/Modal';
 import { QrScannerModal } from './components/ui/QrCodeScanner';
 import {
   NotificationDrawer,
@@ -53,6 +55,18 @@ import {
   ComponentKitView,
 } from './components/views/ComponentKitView';
 import { FileStorageView } from './components/views/FileStorageView';
+import { KanbanView } from './components/views/KanbanView';
+import { ReportsView } from './components/views/ReportsView';
+import { OrderDetailPageView } from './components/views/OrderDetailPageView';
+import { OrderFormPageView } from './components/views/OrderFormPageView';
+import { AccessControlView } from './components/views/AccessControlView';
+import { AuditLogView } from './components/views/AuditLogView';
+import { SettingsView } from './components/views/SettingsView';
+import { AuthErrorShowcaseView } from './components/views/AuthErrorShowcaseView';
+import { OperationsTasksView } from './components/views/OperationsTasksView';
+import { ConfirmProvider, ErrorBoundary } from './components/ui/OverlayExtras';
+import { PermissionProvider } from './components/ui/SharedComposites';
+import { QuickActionsFAB } from './components/ui/LayoutPrimitives';
 import { OrderDetailDrawer } from './components/dashboard/OrderDetailDrawer';
 import { CreateOrderModal } from './components/dashboard/CreateOrderModal';
 
@@ -84,6 +98,10 @@ function DashboardWorkspace() {
   const [componentCategory, setComponentCategory] =
     useState<ComponentKitCategory>('all');
   const [inspectedOrderId, setInspectedOrderId] = useState<string | null>(null);
+  const [detailPageOrderId, setDetailPageOrderId] = useState<string | null>(null);
+  const [editingPageOrderId, setEditingPageOrderId] = useState<string | null>(null);
+  const [orderFormDirty, setOrderFormDirty] = useState(false);
+  const [pendingNavRoute, setPendingNavRoute] = useState<NavRouteId | null>(null);
   const [inspectedCustomerId, setInspectedCustomerId] = useState<string | null>(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -103,6 +121,17 @@ function DashboardWorkspace() {
       // Ignore storage quota errors
     }
   }, [favoritePins]);
+
+  // Warn browser tab unload when full-page form has unsaved edits
+  useEffect(() => {
+    if (!orderFormDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [orderFormDirty]);
 
   const syncOrdersFromServer = useCallback(async () => {
     try {
@@ -131,7 +160,7 @@ function DashboardWorkspace() {
     }
   }, [darkMode]);
 
-  const handleNavigate = useCallback((route: NavRouteId) => {
+  const applyNavigationNow = useCallback((route: NavRouteId) => {
     const resolved = resolveGroupTargetRoute(route);
     setActiveRoute(resolved);
     setInspectedOrderId(null);
@@ -180,6 +209,22 @@ function DashboardWorkspace() {
         break;
     }
   }, []);
+
+  const handleNavigate = useCallback(
+    (route: NavRouteId) => {
+      const resolved = resolveGroupTargetRoute(route);
+      if (
+        activeRoute === 'order-editor' &&
+        orderFormDirty &&
+        resolved !== 'order-editor'
+      ) {
+        setPendingNavRoute(resolved);
+        return;
+      }
+      applyNavigationNow(resolved);
+    },
+    [activeRoute, orderFormDirty, applyNavigationNow]
+  );
 
   const handleGlobalShortcut = useCallback(
     (id: Exclude<ShortcutId, 'open-help'>) => {
@@ -320,7 +365,7 @@ function DashboardWorkspace() {
 
   const handleUpdateOrder = async (
     id: string,
-    updates: Partial<Pick<OrderRecord, 'status' | 'notes'>>
+    updates: Partial<OrderRecord>
   ) => {
     try {
       const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, {
@@ -345,12 +390,38 @@ function DashboardWorkspace() {
       title: `Updated ${id}`,
       description: updates.status
         ? `Status → ${tStatus(updates.status)}`
-        : 'Notes saved.',
+        : 'Changes saved.',
       variant: 'success',
     });
   };
 
+  const handleRestoreDeletedOrder = useCallback(
+    async (snapshot: OrderRecord) => {
+      try {
+        const res = await fetch('/api/orders/restore', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(snapshot),
+        });
+        if (res.ok) {
+          await syncOrdersFromServer();
+          setGridRefreshKey((k) => k + 1);
+        } else {
+          setOrders((prev) => [snapshot, ...prev]);
+        }
+      } catch {
+        setOrders((prev) => [snapshot, ...prev]);
+      }
+      addToast({
+        title: t('restoredOrderToast', { id: snapshot.id }),
+        variant: 'success',
+      });
+    },
+    [syncOrdersFromServer, addToast, t]
+  );
+
   const handleDeleteOrder = async (id: string) => {
+    const snapshot = orders.find((o) => o.id === id);
     try {
       const res = await fetch(`/api/orders/${encodeURIComponent(id)}`, {
         method: 'DELETE',
@@ -374,6 +445,8 @@ function DashboardWorkspace() {
       title: `Deleted ${id}`,
       description: 'Order removed from the ledger.',
       variant: 'warning',
+      actionLabel: snapshot ? t('undoAction') : undefined,
+      onAction: snapshot ? () => void handleRestoreDeletedOrder(snapshot) : undefined,
     });
   };
 
@@ -581,12 +654,54 @@ function DashboardWorkspace() {
           />
         )}
 
-        {activeSection === 'orders' && (
-          <OrdersView
-            filters={orderFilters}
-            refreshKey={gridRefreshKey}
+        {activeRoute === 'order-detail' && (
+          <OrderDetailPageView
+            orders={orders}
+            selectedOrderId={detailPageOrderId}
+            onSelectOrderId={setDetailPageOrderId}
+            onBackToOrders={() => handleNavigate('orders-all')}
+            onOpenQuickDrawer={(o) => setInspectedOrderId(o.id)}
+            onUpdateOrder={(id, updates) => void handleUpdateOrder(id, updates)}
+            onOpenEditorPage={(o) => {
+              setEditingPageOrderId(o.id);
+              handleNavigate('order-editor');
+            }}
+          />
+        )}
+
+        {activeRoute === 'order-editor' && (
+          <OrderFormPageView
+            orders={orders}
+            editingOrderId={editingPageOrderId}
+            onDirtyChange={setOrderFormDirty}
+            onBackToOrders={() => handleNavigate('orders-all')}
+            onCreateOrder={handleCreateOrder}
+            onUpdateOrder={handleUpdateOrder}
+          />
+        )}
+
+        {activeSection === 'orders' &&
+          activeRoute !== 'order-detail' &&
+          activeRoute !== 'order-editor' && (
+            <OrdersView
+              filters={orderFilters}
+              refreshKey={gridRefreshKey}
+              onInspectOrder={(o) => setInspectedOrderId(o.id)}
+              onDataMutated={() => void syncOrdersFromServer()}
+            />
+          )}
+
+        {activeSection === 'kanban' && (
+          <KanbanView
+            orders={orders}
+            onUpdateOrderStatus={(id, status: OrderStatus) =>
+              void handleUpdateOrder(id, { status })
+            }
             onInspectOrder={(o) => setInspectedOrderId(o.id)}
-            onDataMutated={() => void syncOrdersFromServer()}
+            onCreateNewOrder={() => {
+              setEditingPageOrderId(null);
+              handleNavigate('order-editor');
+            }}
           />
         )}
 
@@ -604,6 +719,43 @@ function DashboardWorkspace() {
             onTogglePinCustomer={handleToggleCustomerPin}
           />
         )}
+
+        {activeSection === 'reports' && <ReportsView orders={orders} />}
+
+        {activeSection === 'audit' && <AuditLogView />}
+
+        {activeSection === 'access' && <AccessControlView />}
+
+        {activeSection === 'settings' && (
+          <SettingsView
+            darkMode={darkMode}
+            onToggleDarkMode={() => setDarkMode((d) => !d)}
+            onOpenAccessControl={() => handleNavigate('access-control')}
+          />
+        )}
+
+        {(activeSection === 'auth' || activeSection === 'errors') && (
+          <AuthErrorShowcaseView
+            initialMode={
+              activeRoute === 'error-403'
+                ? '403'
+                : activeRoute === 'error-404'
+                  ? '404'
+                  : activeRoute === 'error-500'
+                    ? '500'
+                    : activeRoute === 'error-maintenance'
+                      ? 'maintenance'
+                      : activeRoute === 'error-offline'
+                        ? 'offline'
+                        : 'auth'
+            }
+            onGoHome={() => handleNavigate('overview')}
+          />
+        )}
+
+        {activeSection === 'tasks' && <OperationsTasksView initialTab="tasks" />}
+
+        {activeSection === 'help' && <OperationsTasksView initialTab="help" />}
 
         {activeSection === 'storage' && <FileStorageView />}
 
@@ -627,8 +779,8 @@ function DashboardWorkspace() {
         <OrderDetailDrawer
           order={inspectedOrder}
           onClose={() => setInspectedOrderId(null)}
-          onUpdateOrder={handleUpdateOrder}
-          onDeleteOrder={handleDeleteOrder}
+          onUpdateOrder={(id, updates) => void handleUpdateOrder(id, updates)}
+          onDeleteOrder={(id) => void handleDeleteOrder(id)}
           isPinned={
             inspectedOrder
               ? isPinned(favoritePins, getOrderPinId(inspectedOrder.id))
@@ -667,7 +819,30 @@ function DashboardWorkspace() {
           }}
         />
 
+        {/* Unsaved Changes Navigation Guard */}
+        <ConfirmModal
+          open={Boolean(pendingNavRoute)}
+          onClose={() => setPendingNavRoute(null)}
+          onConfirm={() => {
+            const target = pendingNavRoute;
+            setPendingNavRoute(null);
+            setOrderFormDirty(false);
+            if (target) applyNavigationNow(target);
+          }}
+          title={t('orderFormDiscardPromptTitle')}
+          message={t('orderFormDiscardPromptMsg')}
+          confirmLabel={t('orderFormLeaveBtn')}
+          cancelLabel={t('orderFormStayBtn')}
+          destructive
+        />
+
         <NotificationDrawer onInspectOrder={handleInspectById} />
+        <QuickActionsFAB
+          onNewOrder={() => setCreateModalOpen(true)}
+          onOpenPalette={() => setCommandPaletteOpen(true)}
+          onOpenTasks={() => handleNavigate('tasks-queue')}
+          onOpenHelp={() => handleNavigate('help-support')}
+        />
       </AppShell>
     </ShortcutProvider>
   );
@@ -675,10 +850,16 @@ function DashboardWorkspace() {
 
 export default function App() {
   return (
-    <I18nProvider>
-      <NotificationProvider>
-        <DashboardWorkspace />
-      </NotificationProvider>
-    </I18nProvider>
+    <ErrorBoundary>
+      <I18nProvider>
+        <NotificationProvider>
+          <PermissionProvider>
+            <ConfirmProvider>
+              <DashboardWorkspace />
+            </ConfirmProvider>
+          </PermissionProvider>
+        </NotificationProvider>
+      </I18nProvider>
+    </ErrorBoundary>
   );
 }

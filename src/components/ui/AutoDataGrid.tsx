@@ -1,8 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
+  ChevronDown,
+  ChevronRight,
   Columns3,
   Download,
   FileDown,
@@ -11,6 +14,7 @@ import {
   Plus,
   Printer,
   RefreshCw,
+  Rows3,
   Search,
   SlidersHorizontal,
   X,
@@ -94,7 +98,51 @@ export function AutoDataGrid({
   const [pendingApproval, setPendingApproval] = useState<PendingApprovalState | null>(null);
   const [printOpen, setPrintOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
   const [internalRefresh, setInternalRefresh] = useState(0);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [density, setDensity] = useState<'comfortable' | 'compact'>(() => {
+    try {
+      return localStorage.getItem('kestrel_grid_density') === 'compact' ? 'compact' : 'comfortable';
+    } catch {
+      return 'comfortable';
+    }
+  });
+  const [colWidths, setColWidths] = useState<Record<string, number>>({});
+
+  const toggleDensity = () => {
+    setDensity((prev) => {
+      const next = prev === 'comfortable' ? 'compact' : 'comfortable';
+      try {
+        localStorage.setItem('kestrel_grid_density', next);
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
+
+  const startResizeColumn = (key: string, startX: number, initialWidth: number) => {
+    const onMove = (e: MouseEvent) => {
+      const delta = e.clientX - startX;
+      setColWidths((prev) => ({
+        ...prev,
+        [key]: Math.max(96, Math.min(480, initialWidth + delta)),
+      }));
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  const toggleExpandRow = (id: string) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
 
   // Sync external initialFilters presets (e.g. sidebar Flagged / Pending routes)
   useEffect(() => {
@@ -115,6 +163,7 @@ export function AutoDataGrid({
 
   const fetchGrid = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const params = new URLSearchParams();
       params.set('page', String(page));
@@ -152,10 +201,12 @@ export function AutoDataGrid({
         }
         return data.defaultVisibleColumns;
       });
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : `Could not reach ${endpoint}`;
+      setLoadError(msg);
       addToast({
         title: 'Failed to load data grid',
-        description: `Could not reach ${endpoint}`,
+        description: msg,
         variant: 'error',
       });
     } finally {
@@ -394,6 +445,7 @@ export function AutoDataGrid({
 
     const perform = async () => {
       if (action.actionType === 'delete') {
+        const snapshot = { ...row };
         const res = await fetch(`${endpoint}/${encodeURIComponent(row.id)}`, {
           method: 'DELETE',
         });
@@ -403,6 +455,22 @@ export function AutoDataGrid({
             title: `Deleted ${row.id}`,
             description: 'Record removed from backend ledger.',
             variant: 'warning',
+            actionLabel: t('undoAction'),
+            onAction: async () => {
+              const restoreRes = await fetch(`${endpoint}/restore`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(snapshot),
+              });
+              if (restoreRes.ok) {
+                addToast({
+                  title: t('restoredOrderToast', { id: snapshot.id }),
+                  variant: 'success',
+                });
+                setInternalRefresh((n) => n + 1);
+                onDataMutated?.();
+              }
+            },
           });
           setInternalRefresh((n) => n + 1);
           onDataMutated?.();
@@ -571,9 +639,24 @@ export function AutoDataGrid({
 
   const renderCellContent = (col: GridColumnSchema, row: GridOrderRow) => {
     switch (col.type) {
-      case 'id':
+      case 'id': {
+        const isExpanded = expandedIds.includes(row.id);
         return (
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toggleExpandRow(row.id)}
+              aria-expanded={isExpanded}
+              aria-label={`Expand details for ${row.id}`}
+              data-testid={`expand-row-${row.id}`}
+              className="w-6 h-6 rounded-md flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:text-slate-200 dark:hover:bg-slate-800 cursor-pointer shrink-0"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" aria-hidden="true" />
+              )}
+            </button>
             <input
               type="checkbox"
               checked={selectedIds.includes(row.id)}
@@ -591,6 +674,7 @@ export function AutoDataGrid({
             </button>
           </div>
         );
+      }
       case 'avatar-text':
         return (
           <div className="flex items-center gap-2.5 min-w-0">
@@ -690,6 +774,15 @@ export function AutoDataGrid({
             onClick={() => setColumnsOpen(true)}
           >
             {t('gridColumnsBtn')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            leftIcon={<Rows3 className="w-3.5 h-3.5" />}
+            onClick={toggleDensity}
+            data-testid="grid-density-toggle"
+          >
+            {density === 'compact' ? 'Compact' : 'Standard'}
           </Button>
           <Button
             variant="secondary"
@@ -939,6 +1032,14 @@ export function AutoDataGrid({
       {/* Main Table / Mobile Cards */}
       {loading && !schema ? (
         <TableSkeleton rows={6} />
+      ) : loadError && !schema ? (
+        <EmptyState
+          icon={<AlertTriangle className="w-5 h-5 text-red-500" />}
+          title="Could not load ledger records"
+          description={loadError}
+          actionLabel="Retry request"
+          onAction={() => void fetchGrid()}
+        />
       ) : rows.length === 0 ? (
         <EmptyState
           icon={<Search className="w-5 h-5" />}
@@ -1078,6 +1179,38 @@ export function AutoDataGrid({
                           <StatusIndicator status={row.status} />
                         )}
                       </div>
+
+                      <div className="pt-1.5 flex items-center justify-between border-t border-slate-100 dark:border-slate-800/80">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandRow(row.id)}
+                          aria-expanded={expandedIds.includes(row.id)}
+                          className="text-xs font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white inline-flex items-center gap-1 cursor-pointer"
+                        >
+                          {expandedIds.includes(row.id) ? (
+                            <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                          ) : (
+                            <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" aria-hidden="true" />
+                          )}
+                          <span>{t('inspectDetails')}</span>
+                        </button>
+                      </div>
+
+                      {expandedIds.includes(row.id) && (
+                        <div className="mt-2 pt-2.5 border-t border-slate-100 dark:border-slate-800 grid grid-cols-1 gap-1.5 text-xs text-slate-600 dark:text-slate-300">
+                          <div>
+                            <span className="text-slate-400">{t('emailLabel')}: </span>
+                            <span dir="ltr" className="font-mono">{row.customerEmail}</span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400">{t('paymentLabel')}: </span>
+                            <span dir="ltr" className="font-mono">{row.paymentMethod}</span>
+                          </div>
+                          {row.notes && (
+                            <p className="text-slate-500 dark:text-slate-400">{row.notes}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </article>
@@ -1104,11 +1237,14 @@ export function AutoDataGrid({
                           : '';
                       const isSorted = col.sortable && sortField === col.key;
 
+                      const customWidth = colWidths[col.key] ?? col.widthPx;
                       return (
                         <th
                           key={col.key}
-                          style={col.widthPx ? { minWidth: col.widthPx } : undefined}
-                          className={`px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap ${
+                          style={customWidth ? { minWidth: customWidth, width: customWidth } : undefined}
+                          className={`relative px-4 ${
+                            density === 'compact' ? 'py-2' : 'py-3'
+                          } text-xs font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap ${
                             col.align === 'right' ? 'text-end' : 'text-start'
                           } ${stickyClass}`}
                         >
@@ -1164,6 +1300,21 @@ export function AutoDataGrid({
                           ) : (
                             col.label
                           )}
+                          {!isStickyStart && !isStickyEnd && (
+                            <span
+                              role="separator"
+                              aria-label={`Resize ${col.label}`}
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                startResizeColumn(
+                                  col.key,
+                                  e.clientX,
+                                  customWidth ?? e.currentTarget.parentElement?.offsetWidth ?? 140
+                                );
+                              }}
+                              className="absolute end-0 top-1.5 bottom-1.5 w-1.5 cursor-col-resize hover:bg-blue-500/40 rounded"
+                            />
+                          )}
                         </th>
                       );
                     })}
@@ -1173,50 +1324,98 @@ export function AutoDataGrid({
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                   {rows.map((row) => {
                     const isSelected = selectedIds.includes(row.id);
+                    const isExpanded = expandedIds.includes(row.id);
                     const stickyRowBg = isSelected
                       ? 'bg-[#eff6ff] dark:bg-slate-800'
                       : 'bg-white dark:bg-slate-900 group-hover:bg-slate-50 dark:group-hover:bg-slate-800';
 
                     return (
-                      <tr
-                        key={row.id}
-                        className={`group transition-colors ${
-                          isSelected
-                            ? 'bg-[#eff6ff] dark:bg-slate-800'
-                            : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
-                        }`}
-                      >
-                        {activeColumns.map((col) => {
-                          const isStickyStart = col.sticky === 'start';
-                          const isStickyEnd = col.sticky === 'end';
-                          const stickyClass = isStickyStart
-                            ? `sticky start-0 z-20 ${stickyRowBg} border-e border-slate-200/90 dark:border-slate-800 shadow-[4px_0_8px_-6px_rgba(15,23,42,0.12)]`
-                            : isStickyEnd
-                              ? `sticky end-0 z-20 ${stickyRowBg} border-s border-slate-200/90 dark:border-slate-800 shadow-[-4px_0_8px_-6px_rgba(15,23,42,0.12)]`
-                              : '';
+                      <Fragment key={row.id}>
+                        <tr
+                          className={`group transition-colors ${
+                            isSelected
+                              ? 'bg-[#eff6ff] dark:bg-slate-800'
+                              : 'bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {activeColumns.map((col) => {
+                            const isStickyStart = col.sticky === 'start';
+                            const isStickyEnd = col.sticky === 'end';
+                            const stickyClass = isStickyStart
+                              ? `sticky start-0 z-20 ${stickyRowBg} border-e border-slate-200/90 dark:border-slate-800 shadow-[4px_0_8px_-6px_rgba(15,23,42,0.12)]`
+                              : isStickyEnd
+                                ? `sticky end-0 z-20 ${stickyRowBg} border-s border-slate-200/90 dark:border-slate-800 shadow-[-4px_0_8px_-6px_rgba(15,23,42,0.12)]`
+                                : '';
 
-                          return (
-                            <td
-                              key={col.key}
-                              className={`px-4 py-3 text-sm text-slate-700 dark:text-slate-200 ${
-                                col.align === 'right' ? 'text-end' : 'text-start'
-                              } ${stickyClass}`}
-                            >
-                              {isStickyEnd && schema ? (
-                                <DataGridRowActionsMenu
-                                  row={row}
-                                  actions={schema.rowActions}
-                                  onExecuteAction={(action, r) =>
-                                    void executeSingleRowAction(action, r)
-                                  }
-                                />
-                              ) : (
-                                renderCellContent(col, row)
-                              )}
+                            return (
+                              <td
+                                key={col.key}
+                                className={`px-4 ${
+                                  density === 'compact' ? 'py-1.5' : 'py-3'
+                                } text-sm text-slate-700 dark:text-slate-200 ${
+                                  col.align === 'right' ? 'text-end' : 'text-start'
+                                } ${stickyClass}`}
+                              >
+                                {isStickyEnd && schema ? (
+                                  <DataGridRowActionsMenu
+                                    row={row}
+                                    actions={schema.rowActions}
+                                    onExecuteAction={(action, r) =>
+                                      void executeSingleRowAction(action, r)
+                                    }
+                                  />
+                                ) : (
+                                  renderCellContent(col, row)
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                        {isExpanded && (
+                          <tr
+                            className="bg-slate-50/70 dark:bg-slate-950/60"
+                            data-testid={`expanded-row-${row.id}`}
+                          >
+                            <td colSpan={activeColumns.length} className="px-6 py-3.5">
+                              <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
+                                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300">
+                                  <div>
+                                    <span className="text-slate-400 me-1.5">{t('emailLabel')}:</span>
+                                    <span dir="ltr" className="font-mono font-medium text-slate-900 dark:text-white">
+                                      {row.customerEmail}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400 me-1.5">{t('paymentLabel')}:</span>
+                                    <span dir="ltr" className="font-mono font-medium text-slate-900 dark:text-white">
+                                      {row.paymentMethod}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400 me-1.5">{t('regionLabel')}:</span>
+                                    <span className="font-medium text-slate-900 dark:text-white">
+                                      {row.region}
+                                    </span>
+                                  </div>
+                                  {row.notes && (
+                                    <div className="max-w-md truncate">
+                                      <span className="text-slate-400 me-1.5">{t('opsNotesLabel')}:</span>
+                                      <span>{row.notes}</span>
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => onInspectRow?.(row)}
+                                >
+                                  {t('inspectDetails')}
+                                </Button>
+                              </div>
                             </td>
-                          );
-                        })}
-                      </tr>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>

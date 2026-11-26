@@ -1,4 +1,18 @@
-export type NavSection = 'overview' | 'orders' | 'customers' | 'storage' | 'components';
+export type NavSection =
+  | 'overview'
+  | 'orders'
+  | 'customers'
+  | 'kanban'
+  | 'reports'
+  | 'audit'
+  | 'access'
+  | 'settings'
+  | 'storage'
+  | 'tasks'
+  | 'help'
+  | 'components'
+  | 'auth'
+  | 'errors';
 
 export type NavRouteId =
   | 'overview'
@@ -7,11 +21,27 @@ export type NavRouteId =
   | 'orders-all'
   | 'orders-flagged'
   | 'orders-pending'
+  | 'kanban'
+  | 'order-detail'
+  | 'order-editor'
   | 'customers-group'
   | 'customers-all'
   | 'customers-enterprise'
   | 'customers-risk'
+  | 'reports'
+  | 'audit-log'
   | 'storage'
+  | 'tasks-queue'
+  | 'help-support'
+  | 'admin-group'
+  | 'access-control'
+  | 'settings'
+  | 'auth-flows'
+  | 'error-403'
+  | 'error-404'
+  | 'error-500'
+  | 'error-maintenance'
+  | 'error-offline'
   | 'ui-system'
   | 'components-all'
   | 'components-inputs'
@@ -104,4 +134,82 @@ export interface RevenueSeriesPoint {
   revenue: number;
   previousRevenue: number;
   orders: number;
+}
+
+export type RoleId = 'super_admin' | 'ops_lead' | 'finance_analyst' | 'support_agent';
+
+export type PermissionResource =
+  | 'overview'
+  | 'orders'
+  | 'customers'
+  | 'storage'
+  | 'reports'
+  | 'access'
+  | 'settings';
+
+export type PermissionAction = 'view' | 'create' | 'edit' | 'delete';
+
+export interface RoleDefinition {
+  id: RoleId;
+  name: string;
+  description: string;
+  memberCount: number;
+  isSystem?: boolean;
+}
+
+export type PermissionMatrixState = Record<
+  RoleId,
+  Record<PermissionResource, Record<PermissionAction, boolean>>
+>;
+
+export interface AdminTeamMember {
+  id: string;
+  name: string;
+  email: string;
+  roleId: RoleId;
+  avatar?: string;
+  status: 'Active' | 'Invited' | 'Suspended';
+  lastActive: string;
+  twoFactorEnabled: boolean;
+}
+
+export interface UserSessionRecord {
+  id: string;
+  device: string;
+  browser: string;
+  location: string;
+  ip: string;
+  lastActive: string;
+  current: boolean;
+}
+
+export type AuditLogCategory = 'order' | 'auth' | 'security' | 'storage' | 'settings';
+
+export interface AuditLogEntry {
+  id: string;
+  actor: string;
+  actorEmail: string;
+  category: AuditLogCategory;
+  severity: NotificationSeverity;
+  action: string;
+  target: string;
+  ip: string;
+  timestamp: string;
+  details: string;
+}
+
+export interface OrderFormDraft {
+  editingId?: string;
+  customerName: string;
+  customerEmail: string;
+  company: string;
+  planOrItem: string;
+  channel: OrderChannel;
+  status: OrderStatus;
+  amount: string;
+  date: string;
+  region: string;
+  paymentMethod: string;
+  tags: string[];
+  notes: string;
 }

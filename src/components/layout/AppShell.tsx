@@ -4,14 +4,22 @@ import {
   Blocks,
   FolderOpen,
   Globe,
+  History,
+  Kanban,
+  KeyRound,
   Keyboard,
   LayoutDashboard,
+  LineChart,
   Menu,
   Moon,
+  PanelLeftClose,
+  PanelLeftOpen,
   Plus,
   QrCode,
   ReceiptText,
   Search,
+  Settings,
+  ShieldCheck,
   Sun,
   Users,
 } from 'lucide-react';
@@ -32,6 +40,7 @@ import { AdaptiveDrawer } from '../ui/AdaptiveDrawer';
 import { useShortcuts } from '../ui/KeyboardShortcutManager';
 import { NestedNavMenu } from '../ui/NestedNavMenu';
 import { useNotifications } from '../ui/NotificationSystem';
+import { Popover } from '../ui/Tooltip';
 
 interface MobileTabItem {
   id: NavSection;
@@ -46,6 +55,36 @@ const MOBILE_TABS: MobileTabItem[] = [
   { id: 'customers', routeId: 'customers-all', labelKey: 'navCustomers', Icon: Users },
   { id: 'storage', routeId: 'storage', labelKey: 'navStorage', Icon: FolderOpen },
   { id: 'components', routeId: 'components-all', labelKey: 'navComponents', Icon: Blocks },
+];
+
+interface CollapsedRailItem {
+  routeId: NavRouteId;
+  sectionMatch: NavSection[];
+  labelKey:
+    | 'navOverview'
+    | 'navOrders'
+    | 'navKanban'
+    | 'navCustomers'
+    | 'navReports'
+    | 'navAuditLog'
+    | 'navStorage'
+    | 'navAccessControl'
+    | 'navSettings'
+    | 'navComponents';
+  Icon: typeof LayoutDashboard;
+}
+
+const COLLAPSED_RAIL_ITEMS: CollapsedRailItem[] = [
+  { routeId: 'overview', sectionMatch: ['overview'], labelKey: 'navOverview', Icon: LayoutDashboard },
+  { routeId: 'orders-all', sectionMatch: ['orders'], labelKey: 'navOrders', Icon: ReceiptText },
+  { routeId: 'kanban', sectionMatch: ['kanban'], labelKey: 'navKanban', Icon: Kanban },
+  { routeId: 'customers-all', sectionMatch: ['customers'], labelKey: 'navCustomers', Icon: Users },
+  { routeId: 'reports', sectionMatch: ['reports'], labelKey: 'navReports', Icon: LineChart },
+  { routeId: 'audit-log', sectionMatch: ['audit'], labelKey: 'navAuditLog', Icon: History },
+  { routeId: 'storage', sectionMatch: ['storage'], labelKey: 'navStorage', Icon: FolderOpen },
+  { routeId: 'access-control', sectionMatch: ['access', 'auth', 'errors'], labelKey: 'navAccessControl', Icon: ShieldCheck },
+  { routeId: 'settings', sectionMatch: ['settings'], labelKey: 'navSettings', Icon: Settings },
+  { routeId: 'components-all', sectionMatch: ['components'], labelKey: 'navComponents', Icon: Blocks },
 ];
 
 export interface AppShellProps {
@@ -85,6 +124,7 @@ export function AppShell({
   const { unreadCount, setDrawerOpen } = useNotifications();
   const { setHelpOpen } = useShortcuts();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const navTree = useMemo(
     () =>
@@ -130,20 +170,47 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col lg:flex-row">
-      {/* Desktop Start Sidebar (Left in LTR, Right in RTL) */}
-      <aside className="no-print hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 bg-white dark:bg-slate-900 border-e border-slate-200 dark:border-slate-800 z-30">
-        <div className="h-16 px-6 flex items-center border-b border-slate-200 dark:border-slate-800 shrink-0">
+      {/* Collapsible Desktop Sidebar (Left in LTR, Right in RTL) */}
+      <aside
+        data-testid="desktop-sidebar"
+        data-collapsed={sidebarCollapsed ? 'true' : 'false'}
+        className={`no-print hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:start-0 bg-white dark:bg-slate-900 border-e border-slate-200 dark:border-slate-800 z-30 transition-[width] duration-200 ${
+          sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'
+        }`}
+      >
+        <div
+          className={`h-16 flex items-center border-b border-slate-200 dark:border-slate-800 shrink-0 ${
+            sidebarCollapsed ? 'px-3 justify-between' : 'px-5 justify-between'
+          }`}
+        >
           <button
             type="button"
             onClick={() => onNavigate('overview')}
-            className="flex items-center gap-2.5 text-start cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg"
+            className="flex items-center gap-2.5 text-start cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 rounded-lg min-w-0"
           >
             <div className="w-8 h-8 rounded-xl bg-slate-900 dark:bg-blue-600 text-white flex items-center justify-center font-display font-bold text-sm shrink-0">
               K
             </div>
-            <span className="font-display font-bold text-lg tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0">
-              {t('brandName')}
-            </span>
+            {!sidebarCollapsed && (
+              <span className="font-display font-bold text-lg tracking-tight text-slate-900 dark:text-white whitespace-nowrap shrink-0">
+                {t('brandName')}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((c) => !c)}
+            data-testid="sidebar-collapse-toggle"
+            aria-label={sidebarCollapsed ? t('sidebarExpand') : t('sidebarCollapse')}
+            title={sidebarCollapsed ? t('sidebarExpand') : t('sidebarCollapse')}
+            className="min-h-[34px] min-w-[34px] rounded-lg flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 cursor-pointer shrink-0"
+          >
+            {sidebarCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4 rtl:rotate-180" aria-hidden="true" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4 rtl:rotate-180" aria-hidden="true" />
+            )}
           </button>
         </div>
 
@@ -151,35 +218,75 @@ export function AppShell({
           aria-label="Primary navigation"
           className="flex-1 overflow-y-auto px-3 py-4"
         >
-          <NestedNavMenu
-            nodes={navTree}
-            activeRoute={activeRoute}
-            onSelectRoute={onNavigate}
-            searchable
-          />
+          {sidebarCollapsed ? (
+            <ul className="space-y-1.5">
+              {COLLAPSED_RAIL_ITEMS.map(({ routeId, sectionMatch, labelKey, Icon }) => {
+                const active = sectionMatch.includes(activeSection);
+                const label = t(labelKey);
+                return (
+                  <li key={routeId}>
+                    <button
+                      type="button"
+                      onClick={() => onNavigate(routeId)}
+                      title={label}
+                      aria-label={label}
+                      aria-current={active ? 'page' : undefined}
+                      className={`w-full h-10 rounded-xl flex items-center justify-center transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-slate-900 text-white dark:bg-blue-600'
+                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <NestedNavMenu
+              nodes={navTree}
+              activeRoute={activeRoute}
+              onSelectRoute={onNavigate}
+              searchable
+            />
+          )}
         </nav>
 
-        <div className="p-4 border-t border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-3">
+        <div className="p-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
+          <button
+            type="button"
+            onClick={() => onNavigate('settings')}
+            title={ADMIN_PROFILE.name}
+            className={`w-full p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/70 transition-colors flex items-center cursor-pointer ${
+              sidebarCollapsed ? 'justify-center' : 'gap-3'
+            }`}
+          >
             <Avatar
               src={ADMIN_PROFILE.avatar}
               name={ADMIN_PROFILE.name}
               size="md"
             />
-            <div className="min-w-0 text-start">
-              <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                {ADMIN_PROFILE.name}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                {t('roleVpOps')}
-              </p>
-            </div>
-          </div>
+            {!sidebarCollapsed && (
+              <div className="min-w-0 text-start">
+                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
+                  {ADMIN_PROFILE.name}
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                  {t('roleVpOps')}
+                </p>
+              </div>
+            )}
+          </button>
         </div>
       </aside>
 
       {/* Main Content Wrapper */}
-      <div className="flex-1 lg:ps-64 flex flex-col min-w-0">
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-200 ${
+          sidebarCollapsed ? 'lg:ps-20' : 'lg:ps-64'
+        }`}
+      >
         {/* Top Header */}
         <header className="no-print sticky top-0 z-30 h-13 lg:h-16 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-3 sm:px-4 lg:px-8 flex items-center justify-between gap-2 sm:gap-3">
           {/* Start: Mobile Menu Drawer Trigger + Title / Desktop Active Breadcrumb Trail */}
@@ -209,7 +316,7 @@ export function AppShell({
             </h1>
           </div>
 
-          {/* End Actions: Command Search + Language Switcher + Dark Mode + Notifications + New Order */}
+          {/* End Actions: Command Search + QR + Language + Shortcuts + Theme + Notifications + Profile + New Order */}
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             {onOpenCommandPalette && (
               <>
@@ -218,7 +325,7 @@ export function AppShell({
                   onClick={onOpenCommandPalette}
                   aria-label={t('cmdOpenAria')}
                   data-testid="command-palette-trigger"
-                  className="hidden md:flex items-center gap-2.5 min-h-[38px] w-48 xl:w-64 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/70 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
+                  className="hidden md:flex items-center gap-2.5 min-h-[38px] w-44 xl:w-60 px-3 rounded-xl bg-slate-100/80 hover:bg-slate-200/70 dark:bg-slate-800/90 dark:hover:bg-slate-700/80 border border-slate-200/80 dark:border-slate-700 text-xs text-slate-500 dark:text-slate-400 transition-colors cursor-pointer"
                 >
                   <Search className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
                   <span className="truncate flex-1 text-start">
@@ -317,6 +424,67 @@ export function AppShell({
               )}
             </button>
 
+            {/* User Profile Popover */}
+            <Popover
+              align="end"
+              title={`${ADMIN_PROFILE.name} · ${t('roleVpOps')}`}
+              trigger={
+                <button
+                  type="button"
+                  aria-label="Open account menu"
+                  data-testid="topbar-profile-trigger"
+                  className="hidden sm:inline-flex items-center rounded-full p-0.5 border border-transparent hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer"
+                >
+                  <Avatar
+                    src={ADMIN_PROFILE.avatar}
+                    name={ADMIN_PROFILE.name}
+                    size="sm"
+                  />
+                </button>
+              }
+            >
+              {(close) => (
+                <div className="space-y-1">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 pb-1.5 truncate">
+                    {ADMIN_PROFILE.email}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      onNavigate('settings');
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <Settings className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t('navSettings')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      onNavigate('access-control');
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t('navAccessControl')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      onNavigate('auth-flows');
+                    }}
+                    className="w-full px-2.5 py-2 rounded-xl flex items-center gap-2 text-start text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{t('navAuthFlows')}</span>
+                  </button>
+                </div>
+              )}
+            </Popover>
+
             <div className="hidden sm:block">
               <Button
                 variant="primary"
@@ -341,7 +509,7 @@ export function AppShell({
         {quickAccessBar}
 
         {/* Main Viewport */}
-        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 pb-20 lg:pb-8">
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6">
           {breadcrumbItems.length > 1 && (
             <div className="lg:hidden mb-3 pb-2 border-b border-slate-200/70 dark:border-slate-800/80">
               <Breadcrumb
@@ -354,6 +522,52 @@ export function AppShell({
           )}
           {children}
         </main>
+
+        {/* Clean Workspace Footer */}
+        <footer
+          data-testid="app-footer"
+          className="no-print border-t border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 px-4 sm:px-6 lg:px-8 py-3.5 pb-20 lg:pb-4"
+        >
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {t('footerVersion')}
+              </span>
+              <span aria-hidden="true">·</span>
+              <span>© 2026 {t('brandName')} Ops</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                className="hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                {t('footerSupport')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('audit-log')}
+                className="hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                {t('footerAudit')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('settings')}
+                className="hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                {t('footerSettings')}
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate('error-404')}
+                className="hover:text-slate-900 dark:hover:text-white cursor-pointer"
+              >
+                {t('footerErrorDemo')}
+              </button>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* Mobile Nested Navigation Drawer (Bottom Sheet) */}

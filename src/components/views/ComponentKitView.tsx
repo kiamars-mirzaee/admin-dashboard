@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bell, Inbox, Layers, PanelRightOpen, Sparkles } from 'lucide-react';
+import { Bell, Inbox, Info, Layers, PanelRightOpen, Sparkles } from 'lucide-react';
 import { REVENUE_SERIES_BY_RANGE, INITIAL_CUSTOMERS, INITIAL_ORDERS } from '../../data/seedData';
 import type { CustomerProfile, OrderRecord } from '../../types/admin';
 import type { StorageNode } from '../../types/storage';
@@ -7,6 +7,8 @@ import { useI18n } from '../../i18n/I18nContext';
 import type { NumberFormatStyle, NumeralScript } from '../../utils/numberFormat';
 import { StorageFormField } from '../storage/FileStoragePickerModal';
 import { AdaptiveDrawer } from '../ui/AdaptiveDrawer';
+import { Alert } from '../ui/Alert';
+import { AvatarGroup } from '../ui/Avatar';
 import { Breadcrumb } from '../ui/Breadcrumb';
 import { Button } from '../ui/Button';
 import { ChannelBreakdownChart, RevenueAreaChart } from '../ui/Charts';
@@ -16,12 +18,27 @@ import { DatePicker } from '../ui/DatePicker';
 import { DateRangePicker, type DateRangeValue } from '../ui/DateRangePicker';
 import { DateTimePicker } from '../ui/DateTimePicker';
 import { EmptyState } from '../ui/EmptyState';
+import { ErrorStateView } from '../ui/ErrorPages';
+import {
+  CheckboxField,
+  MarkdownEditor,
+  PasswordInput,
+  RadioGroupField,
+  SearchableCombobox,
+  SliderField,
+  SwitchToggle,
+  TagInput,
+  TimePicker,
+} from '../ui/FormControls';
+import { FormWizard } from '../ui/FormWizard';
+import { HeatmapChart } from '../ui/HeatmapChart';
 import { ConfirmModal, Modal } from '../ui/Modal';
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect';
 import { MultipartUploader } from '../ui/MultipartUploader';
 import { useNotifications } from '../ui/NotificationSystem';
 import { NumberFormatter, PersianNumber } from '../ui/NumberDisplay';
 import { PersianDatePicker } from '../ui/PersianDatePicker';
+import { ProgressBar, Spinner } from '../ui/Progress';
 import { QrCodeScanner } from '../ui/QrCodeScanner';
 import { SegmentedControl } from '../ui/SegmentedControl';
 import { TableSkeleton } from '../ui/Skeleton';
@@ -31,12 +48,14 @@ import { TaskWithSubtaskTemplate } from '../ui/TaskWithSubtaskTemplate';
 import { ProjectWithSubprojectTemplate } from '../ui/ProjectWithSubprojectTemplate';
 import { TicketWithTasks } from '../ui/TicketWithTasks';
 import { TicketConversionLog } from '../ui/TicketConversionLog';
+import { Popover, Tooltip } from '../ui/Tooltip';
 import { WysiwygEditor } from '../ui/WysiwygEditor';
 import {
   createTicketConversionEntry,
   INITIAL_TICKET_CONVERSION_LOG,
   type TicketConversionEntry,
 } from '../../utils/workTemplates';
+import { ExtendedKitShowcase } from './ExtendedKitShowcase';
 
 export type ComponentKitCategory =
   | 'all'
@@ -109,6 +128,21 @@ export function ComponentKitView({
   const [pickerRootId, setPickerRootId] = useState<string>('fld-compliance');
   const [pickerFile, setPickerFile] = useState<StorageNode | null>(null);
 
+  // Extended form controls showcase states
+  const [demoPassword, setDemoPassword] = useState('Kestrel#2026');
+  const [demoRegion, setDemoRegion] = useState('eu-west');
+  const [demoChecked, setDemoChecked] = useState(true);
+  const [demoSwitch, setDemoSwitch] = useState(true);
+  const [demoRadio, setDemoRadio] = useState('instant');
+  const [demoTime, setDemoTime] = useState('14:30');
+  const [demoSlider, setDemoSlider] = useState(72);
+  const [demoTags, setDemoTags] = useState<string[]>(['soc2', 'rtl-ready']);
+  const [demoMarkdown, setDemoMarkdown] = useState(
+    '## Release Notes v2.6\n- Full Persian & Arabic RTL support\n- Auto-saved drafts & Undo delete\n> Ready for production rollout.'
+  );
+  const [showDismissibleAlert, setShowDismissibleAlert] = useState(true);
+  const [errorPreviewCode, setErrorPreviewCode] = useState<403 | 404 | 500>(404);
+
   const selectedCategory = onChangeCategory ? activeCategory : internalCat;
   const setSelectedCategory = onChangeCategory ?? setInternalCat;
 
@@ -146,6 +180,80 @@ export function ComponentKitView({
           ]}
         />
       </div>
+
+      {/* 3-Layer Design System Architecture Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="kit-3-layers">
+        <button
+          type="button"
+          onClick={() => setSelectedCategory('all')}
+          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-start hover:border-blue-400 transition-colors cursor-pointer"
+        >
+          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+            {t('kitLayerFoundation')}
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+            Semantic palette, 4px/8px spacing, tabular numerals & Vazirmatn RTL type scale.
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedCategory('inputs')}
+          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-start hover:border-blue-400 transition-colors cursor-pointer"
+        >
+          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+            {t('kitLayerComponents')}
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+            Inputs, Combobox, Markdown, Alerts, Popovers, Progress & Charts.
+          </p>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSelectedCategory('workflows')}
+          className="p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-start hover:border-blue-400 transition-colors cursor-pointer"
+        >
+          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+            {t('kitLayerPatterns')}
+          </p>
+          <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
+            Form Wizard Stepper, Task/Ticket Workflows, Loading & 403/404/500 states.
+          </p>
+        </button>
+      </div>
+
+      {/* 01. Foundation Design Tokens (shown on All) */}
+      {selectedCategory === 'all' && (
+        <section className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+              {t('kitLayerFoundation')} — Design Tokens
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Fixed color, spacing (4px/8px grid), corner radius, and typographic hierarchy tokens.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 text-xs">
+            {[
+              { name: 'Primary', swatch: 'bg-blue-600', code: '#2563EB' },
+              { name: 'Success', swatch: 'bg-emerald-600', code: '#059669' },
+              { name: 'Warning', swatch: 'bg-amber-500', code: '#F59E0B' },
+              { name: 'Danger', swatch: 'bg-red-600', code: '#DC2626' },
+              { name: 'Slate Surface', swatch: 'bg-slate-900 dark:bg-slate-700', code: '#0F172A' },
+            ].map((tok) => (
+              <div
+                key={tok.name}
+                className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 flex items-center gap-2.5"
+              >
+                <span className={`w-6 h-6 rounded-lg shrink-0 ${tok.swatch}`} />
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-900 dark:text-white truncate">{tok.name}</p>
+                  <p dir="ltr" className="font-mono text-[10px] text-slate-400">{tok.code}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 1-4. Inputs, Pickers, WYSIWYG, Multipart Uploader, Numbers */}
       {showInputs && (
@@ -530,6 +638,93 @@ export function ComponentKitView({
               }
             />
           </section>
+
+          {/* 06. Extended Form Controls & Validation */}
+          <section
+            id="kit-section-extended-inputs"
+            data-testid="kit-section-extended-inputs"
+            className="scroll-mt-20 p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-5"
+          >
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                {t('kitSecExtendedInputs')}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {t('kitSecExtendedInputsDesc')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+              <PasswordInput
+                label="API Admin Password"
+                value={demoPassword}
+                onChange={setDemoPassword}
+                showStrength
+                helperText="Toggle visibility & live strength meter."
+                error={demoPassword.length < 6 ? 'Minimum 6 characters required' : undefined}
+              />
+              <SearchableCombobox
+                label="Settlement Corridor (Combobox)"
+                options={REGION_TAG_OPTIONS}
+                value={demoRegion}
+                onChange={setDemoRegion}
+                helperText="Searchable single-select dropdown."
+              />
+              <TimePicker
+                label="Daily Batch Cutoff (Time Picker)"
+                value={demoTime}
+                onChange={setDemoTime}
+                helperText="Select or pick preset UTC settlement time."
+              />
+              <SliderField
+                label="Risk Score Threshold"
+                value={demoSlider}
+                onChange={setDemoSlider}
+                min={0}
+                max={100}
+                unit="%"
+                helperText="Orders above threshold trigger review."
+              />
+              <TagInput
+                label="Policy Tags"
+                tags={demoTags}
+                onChange={setDemoTags}
+                helperText="Press Enter or comma to add chips."
+              />
+              <div className="space-y-3 pt-1">
+                <CheckboxField
+                  label="Require dual approval"
+                  description="Applies to settlements over $5,000"
+                  checked={demoChecked}
+                  onChange={setDemoChecked}
+                />
+                <SwitchToggle
+                  label="Auto-archive cleared PDFs"
+                  checked={demoSwitch}
+                  onChange={setDemoSwitch}
+                />
+              </div>
+            </div>
+
+            <RadioGroupField
+              label="Payout Rail Priority"
+              columns={3}
+              value={demoRadio}
+              onChange={setDemoRadio}
+              options={[
+                { value: 'instant', label: 'Instant Rail', description: 'Sub-minute FedNow / FAST' },
+                { value: 'ach', label: 'Same-Day ACH', description: 'Zero fee batch clearing' },
+                { value: 'wire', label: 'SWIFT / Wire', description: 'Cross-border settlement' },
+              ]}
+            />
+
+            <MarkdownEditor
+              label="Markdown Release / Ops Notes"
+              value={demoMarkdown}
+              onChange={setDemoMarkdown}
+              helperText="Live Write / Split / Preview without raw HTML injection."
+            />
+          </section>
         </>
       )}
 
@@ -615,6 +810,30 @@ export function ComponentKitView({
                 }
               />
             </div>
+          </section>
+
+          <section
+            id="kit-section-wizard"
+            data-testid="kit-section-wizard"
+            className="scroll-mt-20 space-y-3"
+          >
+            <div>
+              <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+                {t('kitSecWizard')}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {t('kitSecWizardDesc')}
+              </p>
+            </div>
+            <FormWizard
+              onComplete={(draft) =>
+                addToast({
+                  title: `Submitted ${draft.company}`,
+                  description: `${draft.customerName} · $${draft.amount}`,
+                  variant: 'success',
+                })
+              }
+            />
           </section>
         </>
       )}
@@ -753,6 +972,83 @@ export function ComponentKitView({
             />
           </div>
         </div>
+
+        {/* Alerts, Tooltips, Popover, Progress, Spinner, AvatarGroup */}
+        <div id="kit-section-feedback" className="scroll-mt-20 pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-4">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+              {t('kitSecFeedback')}
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {t('kitSecFeedbackDesc')}
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {showDismissibleAlert && (
+              <Alert
+                variant="info"
+                title="Settlement ledger synced"
+                description="All regional gateways are processing within SLA."
+                onDismiss={() => setShowDismissibleAlert(false)}
+              />
+            )}
+            <Alert
+              variant="warning"
+              title="Manual review threshold active"
+              description="Orders exceeding $3,000 require compliance verification."
+              actionLabel={t('inspectDetails')}
+              onAction={() => addToast({ title: 'Threshold policy open', variant: 'info' })}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-3">
+              <Tooltip content="Hover or focus tooltip">
+                <Button variant="secondary" size="sm" leftIcon={<Info className="w-3.5 h-3.5" />}>
+                  Tooltip
+                </Button>
+              </Tooltip>
+
+              <Popover
+                title="Settlement SLA"
+                trigger={
+                  <Button variant="secondary" size="sm">
+                    Open Popover
+                  </Button>
+                }
+              >
+                {(close) => (
+                  <div className="space-y-2">
+                    <p>Next clearing batch executes at 18:00 UTC.</p>
+                    <Button size="sm" variant="primary" onClick={close}>
+                      {t('close')}
+                    </Button>
+                  </div>
+                )}
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Spinner size="sm" label="Syncing..." />
+              <AvatarGroup
+                members={customers.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  src: c.avatar,
+                }))}
+                max={4}
+                size="sm"
+              />
+            </div>
+
+            <ProgressBar
+              value={78}
+              label="Batch Verification"
+              tone="success"
+            />
+          </div>
+        </div>
       </section>
       )}
 
@@ -798,6 +1094,8 @@ export function ComponentKitView({
         orders={orders}
         defaultChartType="composed"
       />
+
+      <HeatmapChart orders={orders} />
 
       {/* 7. KPI Cards & Semantic Statuses */}
       <section className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
@@ -880,8 +1178,45 @@ export function ComponentKitView({
             onAction={() => setPreviewState('loaded')}
           />
         )}
+
+        <div className="pt-4 border-t border-slate-200/80 dark:border-slate-800 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+              HTTP Error State Templates (403 / 404 / 500)
+            </h4>
+            <SegmentedControl
+              ariaLabel="Error page code"
+              value={String(errorPreviewCode)}
+              onChange={(v) => setErrorPreviewCode(Number(v) as 403 | 404 | 500)}
+              options={[
+                { value: '403', label: '403' },
+                { value: '404', label: '404' },
+                { value: '500', label: '500' },
+              ]}
+            />
+          </div>
+          <ErrorStateView
+            code={errorPreviewCode}
+            onGoHome={() =>
+              addToast({ title: t('errBackOverview'), variant: 'info' })
+            }
+            onRetry={
+              errorPreviewCode === 500
+                ? () => addToast({ title: t('errRetryAction'), variant: 'success' })
+                : undefined
+            }
+          />
+        </div>
       </section>
       )}
+
+      <ExtendedKitShowcase
+        showInputs={showInputs}
+        showWorkflows={showWorkflows}
+        showOverlays={showOverlays}
+        showCharts={showCharts}
+        showStates={showStates}
+      />
 
       {/* Interactive Demo Overlays */}
       <AdaptiveDrawer

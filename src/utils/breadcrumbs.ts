@@ -26,6 +26,8 @@ export function resolveGroupTargetRoute(routeId: NavRouteId): NavRouteId {
       return 'orders-all';
     case 'customers-group':
       return 'customers-all';
+    case 'admin-group':
+      return 'access-control';
     case 'ui-system':
       return 'components-all';
     default:

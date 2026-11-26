@@ -230,6 +230,41 @@ async function startServer() {
     res.json({ ok: true, deletedId: id });
   });
 
+  // Restore deleted order (supports destructive-action Undo toast)
+  app.post('/api/orders/restore', (req, res) => {
+    const body = (req.body ?? {}) as Partial<GridOrderRow>;
+    if (!body.id || !body.customerName || !body.company) {
+      res.status(400).json({ error: 'Invalid order payload for restore' });
+      return;
+    }
+    const existingIdx = ordersStore.findIndex((r) => r.id === body.id);
+    const restored: GridOrderRow = {
+      id: body.id,
+      numericCode: body.numericCode || extractNumericCode(body.id),
+      customerName: body.customerName,
+      customerEmail: body.customerEmail ?? '',
+      customerAvatar: body.customerAvatar,
+      company: body.company,
+      planOrItem: body.planOrItem ?? 'Standard Plan',
+      channel: body.channel ?? 'Direct',
+      status: body.status ?? 'Pending',
+      amount: typeof body.amount === 'number' ? body.amount : 0,
+      seatsCount: typeof body.seatsCount === 'number' ? body.seatsCount : 1,
+      date: body.date ?? '2026-11-22',
+      cutoverAt: body.cutoverAt ?? `${body.date ?? '2026-11-22'}T12:00`,
+      region: body.region ?? 'Global',
+      paymentMethod: body.paymentMethod ?? 'Invoice Net-30',
+      updatedBy: body.updatedBy ?? 'Elena Rostova',
+      notes: body.notes,
+    };
+    if (existingIdx >= 0) {
+      ordersStore = ordersStore.map((r, i) => (i === existingIdx ? restored : r));
+    } else {
+      ordersStore = [restored, ...ordersStore];
+    }
+    res.status(201).json({ ok: true, row: restored });
+  });
+
   // Bulk execution across selected, current-page, current-filter, or all-rows
   app.post('/api/orders/bulk', (req, res) => {
     const body = (req.body ?? {}) as {

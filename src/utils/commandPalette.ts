@@ -267,6 +267,30 @@ const COMPONENT_SECTION_ALIASES: ComponentAliasDef[] = [
     anchorId: 'kit-section-breadcrumbs',
     extraKeywords: ['breadcrumb', 'hierarchy', 'trail', 'navigation'],
   },
+  {
+    id: 'comp-extended-inputs',
+    titleKey: 'kitSecExtendedInputs',
+    routeId: 'components-inputs',
+    categoryKey: 'kitTabInputs',
+    anchorId: 'kit-section-extended-inputs',
+    extraKeywords: ['password', 'combobox', 'checkbox', 'radio', 'switch', 'toggle', 'time picker', 'slider', 'tag input', 'markdown'],
+  },
+  {
+    id: 'comp-feedback',
+    titleKey: 'kitSecFeedback',
+    routeId: 'components-overlays',
+    categoryKey: 'kitTabOverlays',
+    anchorId: 'kit-section-feedback',
+    extraKeywords: ['alert', 'banner', 'tooltip', 'popover', 'spinner', 'progress bar', 'avatar group'],
+  },
+  {
+    id: 'comp-wizard',
+    titleKey: 'kitSecWizard',
+    routeId: 'components-workflows',
+    categoryKey: 'kitTabWorkflows',
+    anchorId: 'kit-section-wizard',
+    extraKeywords: ['wizard', 'stepper', 'multi-step', 'form'],
+  },
 ];
 
 export function buildCommandPaletteItems({

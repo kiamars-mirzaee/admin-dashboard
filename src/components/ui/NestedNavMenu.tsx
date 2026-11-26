@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertOctagon,
   AlertTriangle,
   BarChart3,
   Blocks,
@@ -7,12 +8,22 @@ import {
   Building2,
   ChevronRight,
   Clock,
+  FileEdit,
+  FileText,
   FolderOpen,
+  HelpCircle,
+  History,
+  Kanban,
+  KeyRound,
   Layers,
   LayoutDashboard,
+  LineChart,
+  ListChecks,
   ReceiptText,
   Search,
+  Settings,
   ShieldAlert,
+  ShieldCheck,
   Table2,
   Users,
 } from 'lucide-react';
@@ -56,6 +67,28 @@ function renderNavIcon(icon?: NavIconKey) {
       return <Table2 className={cls} aria-hidden="true" />;
     case 'storage':
       return <FolderOpen className={cls} aria-hidden="true" />;
+    case 'kanban':
+      return <Kanban className={cls} aria-hidden="true" />;
+    case 'reports':
+      return <LineChart className={cls} aria-hidden="true" />;
+    case 'audit':
+      return <History className={cls} aria-hidden="true" />;
+    case 'shield':
+      return <ShieldCheck className={cls} aria-hidden="true" />;
+    case 'settings':
+      return <Settings className={cls} aria-hidden="true" />;
+    case 'key':
+      return <KeyRound className={cls} aria-hidden="true" />;
+    case 'error':
+      return <AlertOctagon className={cls} aria-hidden="true" />;
+    case 'fileEdit':
+      return <FileEdit className={cls} aria-hidden="true" />;
+    case 'fileText':
+      return <FileText className={cls} aria-hidden="true" />;
+    case 'tasks':
+      return <ListChecks className={cls} aria-hidden="true" />;
+    case 'help':
+      return <HelpCircle className={cls} aria-hidden="true" />;
   }
 }
 
