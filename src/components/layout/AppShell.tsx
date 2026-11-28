@@ -314,6 +314,7 @@ export function AppShell({
 
       {/* Main Content Wrapper */}
       <div
+        data-testid="app-shell-main-wrapper"
         className={`flex-1 flex flex-col min-w-0 transition-[padding] duration-200 ${
           sidebarCollapsed ? 'lg:ps-20' : 'lg:ps-64'
         }`}

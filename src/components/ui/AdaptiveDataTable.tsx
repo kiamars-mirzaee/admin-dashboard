@@ -57,7 +57,7 @@ export function AdaptiveDataTable<T extends { id: string }>({
   return (
     <div>
       {/* Mobile View (< md): 2026 Tactile Card Rows */}
-      <div className="md:hidden space-y-3" data-testid="mobile-card-list">
+      <div className="md:hidden space-y-3" data-testid="mobile-card-list" data-print-mobile-cards="true">
         <div className="flex items-center justify-between px-1">
           <label className="inline-flex items-center gap-2.5 min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
             <input
@@ -125,7 +125,7 @@ export function AdaptiveDataTable<T extends { id: string }>({
           <table className="w-full border-collapse text-start">
             <thead>
               <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80">
-                <th className="w-11 px-4 py-3">
+                <th data-print-col-hide="true" className="w-11 px-4 py-3">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -170,7 +170,7 @@ export function AdaptiveDataTable<T extends { id: string }>({
                     </th>
                   );
                 })}
-                <th className="w-12 px-4 py-3 text-end">
+                <th data-print-col-hide="true" className="w-12 px-4 py-3 text-end">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -187,7 +187,7 @@ export function AdaptiveDataTable<T extends { id: string }>({
                         : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
                     }`}
                   >
-                    <td className="px-4 py-3">
+                    <td data-print-col-hide="true" className="px-4 py-3">
                       <input
                         type="checkbox"
                         checked={isSelected}
@@ -206,7 +206,7 @@ export function AdaptiveDataTable<T extends { id: string }>({
                         {col.render(row)}
                       </td>
                     ))}
-                    <td className="px-4 py-3 text-end">
+                    <td data-print-col-hide="true" className="px-4 py-3 text-end">
                       <button
                         type="button"
                         onClick={() => onRowClick(row)}

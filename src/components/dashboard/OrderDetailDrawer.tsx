@@ -11,6 +11,7 @@ import { StatusIndicator } from '../ui/StatusIndicator';
 import { ConfirmModal } from '../ui/Modal';
 import { useNotifications } from '../ui/NotificationSystem';
 import { OrderPrintModal } from '../print/OrderPrintModal';
+import { PrintViewBanner } from '../print/AutoPrintStyles';
 import { FileStoragePickerModal } from '../storage/FileStoragePickerModal';
 
 const STATUS_OPTIONS: OrderStatus[] = [
@@ -196,6 +197,13 @@ export function OrderDetailDrawer({
           </div>
         }
       >
+        <PrintViewBanner
+          brandName={t('brandName')}
+          title={`${order.id} · ${order.customerName}`}
+          subtitle={`${order.company} · ${order.planOrItem} · ${order.date}`}
+          metaLabel={tStatus(status)}
+          testId="order-drawer-print-banner"
+        />
         {/* Customer Summary */}
         <div className="flex items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-3 min-w-0">
@@ -258,7 +266,7 @@ export function OrderDetailDrawer({
         </dl>
 
         {/* Editable Status */}
-        <div className="space-y-2 pt-2">
+        <div data-print-controls="true" className="space-y-2 pt-2">
           <label
             htmlFor="detail-order-status"
             className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
@@ -291,6 +299,7 @@ export function OrderDetailDrawer({
             <button
               type="button"
               onClick={() => setAttachModalOpen(true)}
+              data-print-hide="true"
               data-testid="order-drawer-attach-btn"
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-950/40 transition-colors cursor-pointer whitespace-nowrap"
             >

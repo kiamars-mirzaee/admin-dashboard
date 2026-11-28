@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Pin, PinOff, Search } from 'lucide-react';
+import { Pin, PinOff, Printer, Search } from 'lucide-react';
 import type { CustomerProfile, OrderRecord } from '../../types/admin';
 import { INITIAL_CUSTOMERS } from '../../data/seedData';
 import { formatCurrency } from '../../utils/tableLogic';
 import { useI18n } from '../../i18n/I18nContext';
+import { PrintViewBanner } from '../print/AutoPrintStyles';
 import { AdaptiveDataTable, type TableColumn } from '../ui/AdaptiveDataTable';
 import { AdaptiveDrawer } from '../ui/AdaptiveDrawer';
 import { Avatar } from '../ui/Avatar';
@@ -157,16 +158,31 @@ export function CustomersView({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-          {t('customersTitle')}
-        </h2>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-          {t('customersSubtitle')}
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+        <div>
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            {t('customersTitle')}
+          </h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            {t('customersSubtitle')}
+          </p>
+        </div>
+
+        <Button
+          variant="secondary"
+          size="sm"
+          leftIcon={<Printer className="w-3.5 h-3.5" />}
+          onClick={() => window.print()}
+          data-testid="customers-print-btn"
+        >
+          {t('printBtn')}
+        </Button>
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div
+        data-print-controls="true"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+      >
         <div className="relative flex-1 max-w-md">
           <Search
             className="w-4 h-4 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -311,14 +327,32 @@ export function CustomersView({
                 </Button>
               )}
             </div>
-            <Button variant="secondary" onClick={() => setActiveCustomer(null)}>
-              {t('close')}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="md"
+                leftIcon={<Printer className="w-4 h-4" />}
+                onClick={() => window.print()}
+                data-testid="customer-detail-print-btn"
+              >
+                {t('printBtn')}
+              </Button>
+              <Button variant="secondary" onClick={() => setActiveCustomer(null)}>
+                {t('close')}
+              </Button>
+            </div>
           </div>
         }
       >
         {activeCustomer && (
           <div className="space-y-5">
+            <PrintViewBanner
+              brandName={t('brandName')}
+              title={activeCustomer.name}
+              subtitle={`${activeCustomer.company} · ${activeCustomer.role} · ${activeCustomer.location}`}
+              metaLabel={activeCustomer.id}
+              testId="customer-drawer-print-banner"
+            />
             <div className="flex items-center gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
               <Avatar
                 src={activeCustomer.avatar}
@@ -374,6 +408,7 @@ export function CustomersView({
                     <button
                       key={ord.id}
                       type="button"
+                      data-print-keep="true"
                       onClick={() => {
                         setActiveCustomer(null);
                         onInspectOrder(ord);

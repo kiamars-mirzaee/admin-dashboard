@@ -482,3 +482,6 @@ export function useAbility(
   return { can };
 }
 
+export { useAutoPrintStyles } from '../components/print/AutoPrintStyles';
+
+

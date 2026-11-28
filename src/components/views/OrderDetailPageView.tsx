@@ -159,7 +159,7 @@ export function OrderDetailPageView({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-print-controls="true" className="flex flex-wrap items-center gap-2">
           <select
             aria-label="Switch active order"
             value={order.id}

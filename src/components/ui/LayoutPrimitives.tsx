@@ -421,7 +421,10 @@ export function QuickActionsFAB({
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-5 end-5 z-30 print:hidden flex flex-col items-end gap-2">
+    <div
+      data-testid="quick-actions-fab"
+      className="no-print fixed bottom-5 end-5 z-30 print:hidden flex flex-col items-end gap-2"
+    >
       {open && (
         <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 w-48 space-y-1">
           <button

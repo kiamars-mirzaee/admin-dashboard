@@ -7,6 +7,7 @@ import type {
   OrderStatus,
 } from './types/admin';
 import {
+  ADMIN_PROFILE,
   DEFAULT_ORDER_FILTERS,
   INITIAL_CUSTOMERS,
   INITIAL_ORDERS,
@@ -66,6 +67,7 @@ import { AuthErrorShowcaseView } from './components/views/AuthErrorShowcaseView'
 import { OperationsHubView } from './components/views/OperationsHubView';
 import { OperationsTasksView } from './components/views/OperationsTasksView';
 import { DEFAULT_WORKSPACES } from './components/layout/ShellOverlays';
+import { PrintViewBanner, useAutoPrintStyles } from './components/print/AutoPrintStyles';
 import { ConfirmProvider, ErrorBoundary } from './components/ui/OverlayExtras';
 import { PermissionProvider } from './components/ui/SharedComposites';
 import { QuickActionsFAB } from './components/ui/LayoutPrimitives';
@@ -86,7 +88,7 @@ function loadInitialFavorites(): FavoritePin[] {
 }
 
 function DashboardWorkspace() {
-  const { t, tStatus } = useI18n();
+  const { t, tStatus, dir } = useI18n();
   const { drawerOpen, setDrawerOpen, addToast, pushNotification } =
     useNotifications();
 
@@ -351,6 +353,22 @@ function DashboardWorkspace() {
   );
 
   const activeSection = getSectionForRoute(activeRoute);
+
+  const { profile: printProfile } = useAutoPrintStyles({
+    activeRoute,
+    activeSection,
+    inspectedOrderId,
+    inspectedCustomerId,
+    detailPageOrderId,
+    dir,
+  });
+
+  const activeWorkspace = useMemo(
+    () =>
+      DEFAULT_WORKSPACES.find((w) => w.id === activeWorkspaceId) ??
+      DEFAULT_WORKSPACES[0],
+    [activeWorkspaceId]
+  );
 
   const handleCustomerFilterChange = (mode: CustomerFilterMode) => {
     setCustomerFilterMode(mode);
@@ -681,6 +699,13 @@ function DashboardWorkspace() {
           />
         }
       >
+        <PrintViewBanner
+          brandName={`${t('brandName')} · ${activeWorkspace.name}`}
+          title={printProfile.documentLabel}
+          subtitle={`${ADMIN_PROFILE.name} · ${t('roleVpOps')}`}
+          metaLabel={`${printProfile.paperSize} ${printProfile.orientation.toUpperCase()}`}
+        />
+
         {activeSection === 'overview' && (
           <OverviewView
             orders={orders}

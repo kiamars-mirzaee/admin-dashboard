@@ -667,6 +667,7 @@ export function AutoDataGrid({
             <button
               type="button"
               dir="ltr"
+              data-print-keep="true"
               onClick={() => onInspectRow?.(row)}
               className="font-mono text-xs font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer whitespace-nowrap"
             >
@@ -758,7 +759,7 @@ export function AutoDataGrid({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div data-print-controls="true" className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
             size="sm"
@@ -894,7 +895,7 @@ export function AutoDataGrid({
       </div>
 
       {/* Search + Advanced Filter Sheet Trigger */}
-      <div className="flex flex-col md:flex-row md:items-center gap-3">
+      <div data-print-controls="true" className="flex flex-col md:flex-row md:items-center gap-3">
         <div className="relative flex-1">
           <Search
             className="w-4 h-4 text-slate-400 absolute start-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -927,7 +928,7 @@ export function AutoDataGrid({
 
       {/* Quick Status Tabs */}
       {schema && (
-        <div className="flex items-center justify-between gap-3">
+        <div data-print-controls="true" className="flex items-center justify-between gap-3">
           <SegmentedControl
             ariaLabel={t('colStatus')}
             value={quickStatusValue}
@@ -1056,7 +1057,7 @@ export function AutoDataGrid({
       ) : (
         <>
           {/* Mobile View (< md): Tactile Row Cards */}
-          <div className="md:hidden space-y-3" data-testid="mobile-card-list">
+          <div className="md:hidden space-y-3" data-testid="mobile-card-list" data-print-mobile-cards="true">
             <div className="flex items-center justify-between px-1">
               <label className="inline-flex items-center gap-2.5 min-h-[44px] text-xs font-medium text-slate-600 dark:text-slate-300 cursor-pointer">
                 <input
@@ -1241,6 +1242,7 @@ export function AutoDataGrid({
                       return (
                         <th
                           key={col.key}
+                          data-print-col-hide={isStickyEnd ? 'true' : undefined}
                           style={customWidth ? { minWidth: customWidth, width: customWidth } : undefined}
                           className={`relative px-4 ${
                             density === 'compact' ? 'py-2' : 'py-3'
@@ -1350,6 +1352,7 @@ export function AutoDataGrid({
                             return (
                               <td
                                 key={col.key}
+                                data-print-col-hide={isStickyEnd ? 'true' : undefined}
                                 className={`px-4 ${
                                   density === 'compact' ? 'py-1.5' : 'py-3'
                                 } text-sm text-slate-700 dark:text-slate-200 ${
@@ -1427,7 +1430,7 @@ export function AutoDataGrid({
 
       {/* Server-Driven Pagination Bar */}
       {pagination.totalItems > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
+        <div data-print-hide="true" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
           <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 tabular-nums">
             <span>
               {t('showingRange', {
